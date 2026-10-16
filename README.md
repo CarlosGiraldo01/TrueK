@@ -8,18 +8,30 @@ This delivery focuses on the **visual layer only** — all screens, no backend f
 
 - **Next.js** (App Router) + TypeScript
 - **Tailwind CSS v4** for styling
-- **lucide-react** for icons
+- **Heroicons** (`@heroicons/react`) for icons
+- **Express** + TypeScript for the backend 
 
 ## Getting started
 
-\```bash
+```bash
 git clone <repo-url>
 cd TrueK/client
 npm install
 npm run dev
-\```
+```
 
 Open `http://localhost:3000`. If the page doesn't load with a dark background, something didn't install correctly — don't keep working on top of it, ask in the group chat first.
+
+The backend is only a skeleton for now. To check it runs:
+
+```bash
+cd server
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Then open `http://localhost:4000/health`; it should show `{"ok":true}`. On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
 
 ## Design tokens
 
@@ -27,15 +39,23 @@ Colors and fonts are defined as Tailwind tokens in `client/src/app/globals.css` 
 
 ## Project structure
 
-\```
-client/
-├── src/
-│   ├── app/              # Routes (App Router)
-│   ├── components/
-│   │   ├── ui/           # Shared components — see rule below
-│   │   └── [feature]/    # Screen-specific components, scoped per flow
-│   └── lib/               # Mock data, helpers, types
-\```
+```
+TrueK/
+├── client/
+│   └── src/
+│       ├── app/            # Routes (App Router)
+│       ├── components/
+│       │   ├── ui/         # Shared components — see rule below
+│       │   └── [feature]/  # Screen-specific components, scoped per flow
+│       ├── context/        # React contexts (simulated data for now)
+│       └── lib/            # Types, mock data, helpers
+└── server/
+    └── src/
+        ├── config/         # Environment variables
+        ├── db/             # Database connection and SQL
+        ├── middlewares/    # Auth, error handling
+        └── features/       # One folder per feature (auth, posts, chat...)
+```
 
 ## Team workflow rules
 
