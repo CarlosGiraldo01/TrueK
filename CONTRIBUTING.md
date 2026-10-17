@@ -1,36 +1,54 @@
 # Guía de trabajo
 
-Reglas mínimas para trabajar las tres sin pisarnos. Todos los comandos son para PowerShell, desde la raíz del proyecto.
+Reglas mínimas para trabajar los tres sin pisarnos. Todos los comandos son para PowerShell, desde la raíz del proyecto.
 
 ## Reglas
 
-1. Nadie trabaja directo en `main`. Cada una tiene su rama.
-2. Todo entra a `main` por Pull Request (PR), revisado por **otra compañera**.
+1. Nadie trabaja directo en `main` ni en `develop`. Cada quien tiene su rama.
+2. Todo entra a `develop` por Pull Request (PR), revisado por **otro integrante** del equipo. A `main` solo pasa lo que ya se probó en `develop`.
 3. Los componentes compartidos no se cambian sin avisar (ver más abajo).
-4. Cada vez que algo se une a `main`, se avisa por **WhatsApp**.
+4. Cada vez que algo se une a `develop` o a `main`, se avisa por **WhatsApp**.
 
 ## Ramas
 
-Una rama por ciclo de pantallas (ver quién hace qué en el [README](./README.md)):
+Hay dos ramas permanentes y una rama de trabajo por cada ciclo:
+
+| Rama | Qué es | Quién la toca |
+|---|---|---|
+| `main` | La versión estable, la que se muestra y se entrega. Siempre tiene que correr bien | Nadie directamente. Solo recibe lo que ya se probó en `develop` |
+| `develop` | Donde se juntan los ciclos de los tres y se comprueba que funcionan juntos. Es la rama por defecto del repositorio | Se actualiza por PR desde las ramas de cada ciclo |
+| `feature/...` | La rama de trabajo de cada ciclo | La persona dueña de ese ciclo |
+
+El camino de cualquier pantalla es siempre el mismo:
+
+```
+ciclo de la Persona 1 ─┐
+ciclo de la Persona 2 ─┼─►  develop  ─►  main
+ciclo de la Persona 3 ─┘
+```
+
+**Por qué `develop`:** un ciclo puede funcionar perfecto solo y romperse al juntarlo con los de los demás (dos personas usan la misma ruta, alguien cambia un componente que otra ya usaba, los datos simulados dejan de cuadrar). Con `develop` en el medio, esos problemas pasan ahí y no en `main`, y se prueba el recorrido completo antes de entregar.
+
+Una rama por ciclo de pantallas (ver quién hace qué en el [README](./README.md)). El nombre es `feature/<tu-nombre>-<tema>`, con tu nombre en minúsculas. Carlos ya tiene el suyo; Dana y Ana reemplazan `<nombre>` cuando definan si son la Persona 1 o la 2:
 
 | Persona | Rama | Pantallas |
 |---|---|---|
-| 1 | `feature/p1-entrada-perfil` | Pantalla principal, Crear cuenta, Completar perfil, Iniciar sesión, Perfil cliente, Perfil prestador, Editar perfil |
-| 1 | `feature/p1-descubrir` | Feed cliente, Feed prestador, Buscar, Publicación, Crea un truek |
-| 2 | `feature/p2-pedir` | Agendar Servicio, Confirmar servicio, Servicio pedido, Servicios, Solicitud de servicio, y los 4 avisos con su contenedor |
-| 2 | `feature/p2-servicio-calificacion` | Servicio activo, Calificación, Servicio finalizado |
-| 3 | `feature/p3-pago` | Pagar, Pago exitoso, Pago recibido |
-| 3 | `feature/p3-chat-mapa` | Chat vista previa, Chat, Mapa de cercanía |
+| 1 | `feature/<nombre>-entrada-perfil` | Pantalla principal, Crear cuenta, Completar perfil, Iniciar sesión, Perfil cliente, Perfil prestador, Editar perfil |
+| 1 | `feature/<nombre>-descubrir` | Feed cliente, Feed prestador, Buscar, Publicación, Crea un truek |
+| 2 | `feature/<nombre>-pedir` | Agendar Servicio, Confirmar servicio, Servicio pedido, Servicios, Solicitud de servicio, y los 4 avisos con su contenedor |
+| 2 | `feature/<nombre>-servicio-calificacion` | Servicio activo, Calificación, Servicio finalizado |
+| 3 | `feature/carlos-pago` | Pagar, Pago exitoso, Pago recibido |
+| 3 | `feature/carlos-chat-mapa` | Chat vista previa, Chat, Mapa de cercanía |
 
 **Reparto:** Persona 1 se encarga de cuenta y descubrimiento, Persona 2 de solicitud, servicio y avisos, y Persona 3 de pago, chat y mapa.
 
-Crear tu rama (una sola vez por ciclo; el ejemplo es de la Persona 1):
+Crear tu rama **a partir de `develop`**, no de `main` (una sola vez por ciclo; el ejemplo es de Carlos):
 
 ```powershell
-git checkout main
+git checkout develop
 git pull
-git checkout -b feature/p1-entrada-perfil
-git push -u origin feature/p1-entrada-perfil
+git checkout -b feature/carlos-pago
+git push -u origin feature/carlos-pago
 ```
 
 ## Día a día
@@ -45,34 +63,37 @@ git push
 
 Commits in English, with a prefix: `feat:` (something new), `fix:` (a fix), `style:` (visual only), `docs:` (documentation).
 
-## Traer lo nuevo de main a tu rama
+## Traer lo nuevo de develop a tu rama
 
-Como tu rama vive varios días, `main` va a cambiar mientras trabajas. Haz esto **al empezar cada día de trabajo**:
+Como tu rama vive varios días, `develop` va a cambiar mientras trabajas, porque los otros van uniendo sus ciclos. Haz esto **al empezar cada día de trabajo**:
 
 ```powershell
-git checkout main
+git checkout develop
 git pull
-git checkout feature/p1-entrada-perfil
-git merge main
+git checkout feature/carlos-pago
+git merge develop
 ```
 
 Si sale un conflicto, abre el archivo en VS Code, elige la versión correcta con los botones **Accept Current / Incoming / Both**, guarda y haz:
 
 ```powershell
 git add .
-git commit -m "fix: resolve conflict with main"
+git commit -m "fix: resolve conflict with develop"
 ```
 
-Si no estás segura de cuál versión es la correcta, pregunta a quien tocó ese archivo. No borres su trabajo.
+Si no tienes claro cuál versión es la correcta, pregunta a quien tocó ese archivo. No borres su trabajo.
 
 ## Pull Request (cuando terminas tu ciclo de pantallas)
 
-1. Trae lo último de `main` a tu rama (sección anterior) y corre la lista de abajo.
+1. Trae lo último de `develop` a tu rama (sección anterior) y corre la lista de abajo.
 2. En GitHub, pulsa **Compare & pull request**.
-3. Título claro y una descripción corta de qué pantallas incluye.
-4. Pide la revisión de **una compañera** en *Reviewers*.
-5. Con su aprobación, se une con **Merge pull request**.
-6. Avisa por WhatsApp. Las demás hacen `git pull` y `git merge main` en su rama.
+3. Revisa que arriba diga **base: develop**. Como `develop` es la rama por defecto, debería venir así; si dice `main`, cámbialo antes de crear el PR.
+4. Título claro y una descripción corta de qué pantallas incluye.
+5. Pide la revisión de **otro integrante** en *Reviewers*.
+6. Con su aprobación, se une con **Merge pull request**.
+7. Avisa por WhatsApp. Los demás hacen `git checkout develop`, `git pull` y `git merge develop` en su rama.
+
+El PR se abre cuando termina el ciclo completo, no pantalla por pantalla, y siempre apunta a `develop`, nunca a `main`. Quien revisa busca sobre todo que no haya componentes duplicados ni cosas rotas, no que el código esté escrito a su manera.
 
 Lista antes de abrir el PR:
 
@@ -81,6 +102,10 @@ Lista antes de abrir el PR:
 - [ ] Probé las pantallas en vista móvil (F12 y luego Ctrl+Shift+M)
 - [ ] No dejé `console.log`, código comentado ni archivos de prueba
 - [ ] No subí `.env` ni `node_modules`
+
+## De develop a main
+
+Cuando `develop` ya tiene varios ciclos y la app funciona completa, se abre un PR de `develop` hacia `main`. Lo revisan los tres, y antes de unirlo se corre `npm run dev` y `npm run lint` sobre `develop` para confirmar que todo está bien. Si `develop` se rompe, se avisa en el grupo y se arregla ahí antes de seguir; mientras tanto no se pasa nada a `main`.
 
 ## Dónde va cada cosa
 
@@ -193,7 +218,7 @@ Ya vienen creados. Se leen y no se editan.
 ```
 
   `login(id)` y `logout()` los conectan las pantallas de Iniciar sesión, Crear cuenta y Cerrar sesión (Persona 1). Para probar como prestadora, cambia `CURRENT_USER_ID` a `"u2"` en `lib/mock/users.ts`.
-- **Avisos (notificaciones)**: la Persona 2 crea el contenedor que los muestra encima de cualquier pantalla. Las demás solo llaman "mostrar aviso" cuando les haga falta. Hasta que exista, no inventes uno propio.
+- **Avisos (notificaciones)**: la Persona 2 crea el contenedor que los muestra encima de cualquier pantalla. Los demás solo llaman "mostrar aviso" cuando les haga falta. Hasta que exista, no inventes uno propio.
 
 En `Providers.tsx` hay una sección **Compartido** al inicio. No la toques; agrega tu línea solo en la sección de tu persona.
 
@@ -209,6 +234,6 @@ En `Providers.tsx` hay una sección **Compartido** al inicio. No la toques; agre
 
 ## Si algo sale mal
 
-- Hice commit en `main` por error: no hagas push, avisa al grupo.
+- Hice commit en `main` o en `develop` por error: no hagas push, avisa al grupo.
 - No sé en qué rama estoy: `git branch` muestra la actual con un `*`.
-- Evita `git push --force` y `git reset --hard`. Pueden borrar el trabajo de otras.
+- Evita `git push --force` y `git reset --hard`. Pueden borrar el trabajo de los demás.

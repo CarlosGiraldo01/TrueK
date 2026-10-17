@@ -20,7 +20,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. If the page doesn't load with a dark background, something didn't install correctly. Don't keep working on top of it; ask in the group chat first.
+The default branch is `develop`, so that is the one you get after cloning. Open `http://localhost:3000`. If the page doesn't load with a dark background, something didn't install correctly. Don't keep working on top of it; ask in the group chat first.
 
 To preview it as a phone, use F12 and then Ctrl+Shift+M. The app is drawn in a phone-width column (max 440 px) set in `layout.tsx`, so screens don't draw it themselves.
 
@@ -67,6 +67,16 @@ A component used by only one screen lives next to that screen's `page.tsx`. A co
 
 Rules, Git commands, the Pull Request flow and where each file goes are in **[CONTRIBUTING.md](./CONTRIBUTING.md)**. Read it before starting.
 
+The repository has two permanent branches, plus one working branch per cycle:
+
+| Branch | What it is |
+|---|---|
+| `main` | The stable version, the one that is shown and delivered. It always has to run |
+| `develop` | Where the cycles of the three of us are merged and tested together. It is the default branch |
+| `feature/<name>-<topic>` | The working branch of each cycle |
+
+The path of any screen is always the same: the cycle branch goes into `develop` through a Pull Request reviewed by another team member, and only what has been tested in `develop` goes into `main`.
+
 ## Who does what
 
 | Person | Responsibility |
@@ -75,28 +85,28 @@ Rules, Git commands, the Pull Request flow and where each file goes are in **[CO
 | **2** | Requests, service and notifications |
 | **3** | Payment, chat and map |
 
-Screens, in the order they are built:
+Screens, in the order they are built. Carlos is Person 3; Dana and Ana replace `<name>` once they decide who is Person 1 and who is Person 2:
 
 ### Person 1
 
 | Cycle | Branch | Screens |
 |---|---|---|
-| A. Entry & profile | `feature/p1-entrada-perfil` | Splash → Sign up → Complete profile (none chosen, Client, Provider) → Login → Client profile → Provider profile → Edit profile (with Log out) |
-| B. Discover | `feature/p1-descubrir` | Client feed → Provider feed → Search (with search item) → Publication → Create a truek |
+| A. Entry & profile | `feature/<name>-entrada-perfil` | Splash → Sign up → Complete profile (none chosen, Client, Provider) → Login → Client profile → Provider profile → Edit profile (with Log out) |
+| B. Discover | `feature/<name>-descubrir` | Client feed → Provider feed → Search (with search item) → Publication → Create a truek |
 
 ### Person 2
 
 | Cycle | Branch | Screens |
 |---|---|---|
-| C. Request | `feature/p2-pedir` | Schedule service → Confirm service → Service requested → Services (tab, with its states) → Service request (provider detail). Includes the 4 notification overlays and their host |
-| D. Service & rating | `feature/p2-servicio-calificacion` | Active service (client) → Rating (client) → Finished service (provider) |
+| C. Request | `feature/<name>-pedir` | Schedule service → Confirm service → Service requested → Services (tab, with its states) → Service request (provider detail). Includes the 4 notification overlays and their host |
+| D. Service & rating | `feature/<name>-servicio-calificacion` | Active service (client) → Rating (client) → Finished service (provider) |
 
 ### Person 3
 
 | Cycle | Branch | Screens |
 |---|---|---|
-| E. Payment | `feature/p3-pago` | Pay (with its swipe-to-simulate state) → Payment successful → Payment received (provider) |
-| F-G. Chat & map | `feature/p3-chat-mapa` | Chat preview → Chat → Nearby map |
+| E. Payment | `feature/carlos-pago` | Pay (with its swipe-to-simulate state) → Payment successful → Payment received (provider) |
+| F-G. Chat & map | `feature/carlos-chat-mapa` | Chat preview → Chat → Nearby map |
 
 ## How it all connects
 
@@ -178,5 +188,3 @@ const { user } = useSession();
 ```
 
 It starts as `CURRENT_USER_ID` (`u1`, a client). To test the provider view, change it to `"u2"` in `lib/mock/users.ts`.
-
-
