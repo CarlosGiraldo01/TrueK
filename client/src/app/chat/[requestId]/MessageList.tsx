@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { Message } from "@/lib/mock";
+import { useChat } from "@/context/ChatContext";
 import { MessageBubble } from "./MessageBubble";
 
 interface MessageListProps {
-  messages: Message[];
   currentUserId: string;
   clientId: string; 
 }
@@ -18,7 +17,8 @@ const formatTime = (iso: string) =>
     timeZone: "America/Bogota",
   });
 
-export function MessageList({ messages, currentUserId, clientId }: MessageListProps) {
+export function MessageList({ currentUserId, clientId }: MessageListProps) {
+  const { messages } = useChat();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // And this show the newest message, making a coherent order in the chat

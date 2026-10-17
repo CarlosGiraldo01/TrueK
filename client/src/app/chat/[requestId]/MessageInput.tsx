@@ -2,25 +2,23 @@
 
 import { useState } from "react";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { useChat } from "@/context/ChatContext";
 
-interface MessageInputProps {
-  onSend: (content: string) => void;
-}
-
-export function MessageInput({ onSend }: MessageInputProps) {
+export function MessageInput() {
+  const { createMessage } = useChat();
   const [text, setText] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const content = text.trim();
     if (!content) return;
-    onSend(content);
+    createMessage(content);
     setText("");
   };
 
   return (
     <form onSubmit={handleSubmit} className="px-4 pb-4 pt-2">
-      <div className="flex items-center gap-3 rounded-2xl bg-truek-input px-5 py-3 focus-within:ring-1 focus-within:ring-truek-line">
+      <div className="flex items-center gap-3 rounded-2xl bg-truek-input px-5 py-3 focus-within:ring-1 focus-within:ring-white/40">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
