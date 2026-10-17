@@ -9,6 +9,7 @@ This delivery focuses on the **visual layer only**: all screens, with simulated 
 - **Next.js 16** (App Router) + **React 19** + TypeScript
 - **Tailwind CSS v4** for styling
 - **Heroicons** (`@heroicons/react`) for icons
+- **Leaflet** (`leaflet` + `react-leaflet`) for the map, with OpenStreetMap tiles (no API key needed)
 - **Express** + TypeScript for the backend (skeleton only for now)
 
 ## Getting started
@@ -106,7 +107,7 @@ Screens, in the order they are built. Carlos is Person 3; Dana and Ana replace `
 | Cycle | Branch | Screens |
 |---|---|---|
 | E. Payment | `feature/carlos-pago` | Pay (with its swipe-to-simulate state) → Payment successful → Payment received (provider) |
-| F-G. Chat & map | `feature/carlos-chat-mapa` | Chat preview → Chat → Nearby map |
+| F-G. Chat & map | `feature/carlos-chat-mapa` | Chat → Nearby map |
 
 ## How it all connects
 
@@ -143,6 +144,7 @@ These are the points where one cycle hands over to another. The names are so eve
 | Publication (P1) | Schedule service (P2) | `/schedule/[postId]` |
 | Active service (P2) | Chat (P3) | `/chat/[requestId]` |
 | Rating (P2) | Pay (P3) | `/payment/[requestId]` |
+| Nearby map (P3) | Publication (P1) | `/publication/[postId]` |
 
 If the destination screen doesn't exist yet, leave the button pointing to its route and it will work once its owner finishes it.
 
@@ -170,14 +172,15 @@ It lives in `client/src/lib/mock/` and mirrors the database columns (in `snake_c
 
 | File | Contents |
 |---|---|
-| `users.ts` | 4 users (1 client and 3 providers) and `CURRENT_USER_ID` |
+| `users.ts` | 4 users (1 client and 3 providers, with profile pictures) and `CURRENT_USER_ID` |
 | `posts.ts` | 3 publications and the 7 tags |
 | `requests.ts` | 8 requests, one for each status |
 | `ratings.ts` | 3 ratings |
+| `messages.ts` | 11 chat messages, for requests `r1`, `r2`, `r4` and `r7` |
 | `notifications.ts` | 4 notifications, one for each type |
 | `types.ts` | The TypeScript types for all of the above |
 
-`lib/mock/index.ts` exports them together with the helpers `getUserById`, `getPostById` and `getUserRating`.
+`lib/mock/index.ts` exports them together with the helpers `getUserById`, `getPostById`, `getUserRating`, `getRequestById` and `getMessagesByRequest`.
 
 ### Session
 
