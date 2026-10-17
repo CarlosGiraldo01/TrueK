@@ -38,7 +38,7 @@ Una rama por ciclo de pantallas (ver quién hace qué en el [README](./README.md
 | 2 | `feature/<nombre>-pedir` | Agendar Servicio, Confirmar servicio, Servicio pedido, Servicios, Solicitud de servicio, y los 4 avisos con su contenedor |
 | 2 | `feature/<nombre>-servicio-calificacion` | Servicio activo, Calificación, Servicio finalizado |
 | 3 | `feature/carlos-pago` | Pagar, Pago exitoso, Pago recibido |
-| 3 | `feature/carlos-chat-mapa` | Chat vista previa, Chat, Mapa de cercanía |
+| 3 | `feature/carlos-chat-mapa` | Chat, Mapa de cercanía |
 
 **Reparto:** Persona 1 se encarga de cuenta y descubrimiento, Persona 2 de solicitud, servicio y avisos, y Persona 3 de pago, chat y mapa.
 
