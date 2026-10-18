@@ -131,6 +131,7 @@ src/app/
 - Para crear una pantalla, crea la carpeta con el nombre de la ruta y dentro un `page.tsx`.
 - Nombres en minúsculas y en inglés.
 - Las pantallas principales deben llamarse `/home`, `/search`, `/requests`, `/map` y `/profile`, porque la `NavBar` navega a esas rutas.
+- Cualquier ruta que no exista muestra la pantalla 404 personalizada (`src/app/not-found.tsx`); no hace falta crear otra.
 - Las pantallas **no** dibujan la columna del celular: eso ya lo hace `layout.tsx`. Solo devuelven su contenido.
 
 Pantalla de entrada, con un botón que navega:

@@ -137,6 +137,8 @@ The components already exist in `components/ui/notifications`. Person 2 builds t
 
 The main screens must be named exactly `/home`, `/search`, `/requests`, `/map` and `/profile`, because the bottom bar navigates to those routes.
 
+Any route that doesn't exist shows the custom 404 page (`client/src/app/not-found.tsx`). Don't create another one.
+
 These are the points where one cycle hands over to another. The names are so everyone uses the same ones:
 
 | From | To | Route |
@@ -147,6 +149,8 @@ These are the points where one cycle hands over to another. The names are so eve
 | Nearby map (P3) | Publication (P1) | `/publication/[postId]` |
 
 If the destination screen doesn't exist yet, leave the button pointing to its route and it will work once its owner finishes it.
+
+The payment screens (P3) use three routes: `/payment/[requestId]` (Pay, only the client of that request can see it), `/payment/[requestId]/success` (Payment successful) and `/payment/[requestId]/received` (Payment received, only the provider can see it). To see the last one, change `CURRENT_USER_ID` to the provider of the request (for `r2` it is `"u3"`) and go back to `"u1"` afterwards.
 
 ## Shared components
 
