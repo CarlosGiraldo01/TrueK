@@ -2,6 +2,8 @@
 
 import type { ComponentType, ReactNode } from "react";
 import { SessionProvider } from "./SessionContext";
+import { NotificationsProvider } from "./NotificationsContext";
+import { RequestsProvider } from "./RequestContext";
 
 type ProviderComponent = ComponentType<{ children: ReactNode }>;
 
@@ -13,6 +15,8 @@ const providers: ProviderComponent[] = [
   // --- Person 1 ---
 
   // --- Person 2 ---
+  NotificationsProvider,
+  RequestsProvider,
 
   // --- Person 3 ---
 ];
