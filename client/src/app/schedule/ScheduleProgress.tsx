@@ -1,3 +1,4 @@
+//barra de progreso 
 const STEPS = 3;
 
 // Orange line under the header: step 1 Agendar, 2 Confirmar, 3 Pedido.

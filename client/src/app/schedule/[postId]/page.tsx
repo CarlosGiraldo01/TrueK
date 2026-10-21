@@ -11,46 +11,49 @@ import { ProviderHeader } from "../ProviderHeader";
 import { ScheduleProgress } from "../ScheduleProgress";
 import { DateField, HoursStepper, ImagePicker, SelectField } from "../ScheduleFields";
 
-// From 8:00 am to 9:00 pm, every hour.
+// La lista de horas que se pueden elegir: desde las 8:00 de la mañana
+// hasta las 9:00 de la noche, de hora en hora.
+// Hacemos 14 opciones. Para cada una, "i" va de 0 a 13:
+// - 8 + 0 = 8, 8 + 1 = 9... hasta 8 + 13 = 21 (las 9 de la noche).
+// - "padStart(2, "0")" le pone un cero adelante si hace falta: 8 se vuelve "08".
+// Cada opción tiene un "value" (lo que se guarda, como "08:00")
+// y un "label" (lo que se ve, como "8:00 a. m.").
 const TIME_OPTIONS = Array.from({ length: 14 }, (_, i) => {
   const value = `${String(8 + i).padStart(2, "0")}:00`;
   return { value, label: formatTime(value) };
 });
-
+// El molde de los errores: una cajita donde cada campo puede tener (o no) un mensaje de error.
+// Solo estos 4 campos pueden tener error: nombre, dirección, fecha y hora.
+// "Partial" significa que no todos tienen que estar.
 type Errors = Partial<Record<"client_name" | "meeting_address" | "date" | "time", string>>;
-
+//fechas 
 function todayISO() {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60000;
   return new Date(now.getTime() - offset).toISOString().slice(0, 10);
 }
-
+// La pantalla del formulario. Recibe "postId", el número del anuncio que se quiere pedir.
 const ScheduleScreen = ({ postId }: { postId: string }) => {
-  const router = useRouter();
-  const { user } = useSession();
-  const { draft, saveDraft } = useRequests();
-
-  const post = getPostById(postId);
-  // The draft is kept when coming back from "Confirmar servicio".
-  const previous = draft?.post_id === postId ? draft : null;
-
-  const [clientName, setClientName] = useState(previous?.client_name ?? user?.name ?? "");
-  const [address, setAddress] = useState(previous?.meeting_address ?? "");
-  const [hours, setHours] = useState(previous?.hours ?? 1);
-  const [date, setDate] = useState(previous?.date ?? "");
-  const [time, setTime] = useState(previous?.time ?? "");
-  const [image, setImage] = useState<string | null>(previous?.request_image ?? null);
-  const [errors, setErrors] = useState<Errors>({});
-  const [minDate] = useState(todayISO);
-
+      const router = useRouter();
+      const { user } = useSession();// Abrimos la caja de la sesión y sacamos al usuario que entró a la app.
+      const { draft, saveDraft } = useRequests();// - draft: el borrador que ya se había guardado (si hay uno).
+      const post = getPostById(postId);
+      const previous = draft?.post_id === postId ? draft : null;
+      const [clientName, setClientName] = useState(previous?.client_name ?? user?.name ?? "");
+      const [address, setAddress] = useState(previous?.meeting_address ?? "");
+      const [hours, setHours] = useState(previous?.hours ?? 1);
+      const [date, setDate] = useState(previous?.date ?? "");
+      const [time, setTime] = useState(previous?.time ?? "");
+      const [image, setImage] = useState<string | null>(previous?.request_image ?? null);
+      const [errors, setErrors] = useState<Errors>({});
+      const [minDate] = useState(todayISO);
+// Si el anuncio no existe, mostramos la página de "No encontrado".
   if (!post) notFound();
-
-  // The error of a field disappears as soon as it is edited.
-  const clearError = (field: keyof Errors) => setErrors((prev) => ({ ...prev, [field]: undefined }));
-
-  const provider = getUserById(post.user_id);
-  const isOwnPost = user?.id === post.user_id;
-
+  // Esta herramienta borra el error de un campo.
+       const clearError = (field: keyof Errors) => setErrors((prev) => ({ ...prev, [field]: undefined }));
+       const provider = getUserById(post.user_id);
+       const isOwnPost = user?.id === post.user_id;
+   // Esto pasa cuando el cliente aprieta "Continuar":
   const handleContinue = () => {
     const newErrors: Errors = {};
     if (!clientName.trim()) newErrors.client_name = "Escribe tu nombre";
@@ -58,16 +61,9 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
     if (!date) newErrors.date = "Elige una fecha";
     if (!time) newErrors.time = "Elige una hora";
     setErrors(newErrors);
+    // Si todo está bien, guardamos todo como borrador.
     if (Object.keys(newErrors).length > 0) return;
-
-    saveDraft({
-      post_id: post.id,
-      client_name: clientName.trim(),
-      meeting_address: address.trim(),
-      hours,
-      date,
-      time,
-      request_image: image,
+    saveDraft({post_id: post.id, client_name: clientName.trim(),meeting_address: address.trim(),hours,date,time,request_image: image,
     });
     router.push(`/schedule/${post.id}/confirm`);
   };

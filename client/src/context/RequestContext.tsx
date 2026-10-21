@@ -1,97 +1,99 @@
-"use client";
-
+// Guarda y maneja todas las solicitudes de servicio de la app.
+// Todas las pantallas lo usan para leer o cambiar solicitudes.
+// No hay servidor todavía: todo vive en memoria y algunas acciones se simulan.
+ 
+"use client"; // Corre en el navegador.
+ 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { useSession } from "./SessionContext";
-import { useNotifications } from "./NotificationsContext";
-import {RATINGS ,SERVICE_REQUESTS,getPostById,getUserById, type Rating,type ServiceRequest, type ServiceStatus,} from "@/lib/mock";
-
-function getHourlyRate(postId: string): number {
-  const post = getPostById(postId) as unknown as Record<string, unknown> | undefined;
-  const rate = post?.hourly_rate ?? post?.price_per_hour ?? post?.hourlyRate ?? post?.price;
-  return typeof rate === "number" ? rate : 0;
-}
-
-// Simulated delays (ms). Everything happens in memory, there is no server yet.
-const PROVIDER_RESPONSE_DELAY = 6000;
-const PROVIDER_FINISH_DELAY = 12000;
-const CLIENT_RATING_DELAY = 4000;
-const INCOMING_REQUEST_DELAY = 2500;
-
-// Data filled in "Agendar Servicio" and shown in "Confirmar servicio".
+import { useSession } from "./SessionContext"; // Para saber quién inició sesión.
+import { useNotifications } from "./NotificationsContext"; // Para mostrar avisos.
+import {RATINGS ,SERVICE_REQUESTS,getPostById,getUserById, type Rating,type ServiceRequest, type ServiceStatus,} from "@/lib/mock"; // Datos de prueba.
+import { getHourlyRate } from "@/app/requests/formatService"; // Precio por hora de un servicio.
+ 
+// Tiempos de espera de las simulaciones (1000 = 1 segundo).
+const PROVIDER_RESPONSE_DELAY = 6000; // El prestador acepta.
+const PROVIDER_FINISH_DELAY = 12000; // El prestador termina.
+const CLIENT_RATING_DELAY = 4000; // El cliente califica.
+const INCOMING_REQUEST_DELAY = 2500; // Al prestador le llega el aviso de solicitud nueva.
+ 
+// Datos del formulario "Agendar Servicio" antes de confirmar.
 export interface ScheduleDraft {
-  post_id: string;
-  client_name: string;
-  meeting_address: string;
-  hours: number;
-  date: string; // "2026-11-14"
-  time: string; // "16:00"
-  request_image: string | null;
+  post_id: string; // Servicio elegido.
+  client_name: string; // Nombre del cliente.
+  meeting_address: string; // Dirección del encuentro.
+  hours: number; // Cantidad de horas.
+  date: string; // Fecha, ej: "2026-11-14".
+  time: string; // Hora, ej: "16:00".
+  request_image: string | null; // Foto opcional.
 }
-
+ 
+// Papel del usuario en una solicitud.
 export type RequestRole = "client" | "provider";
-
+ 
+// Lista de todo lo que este archivo ofrece a las pantallas.
 interface RequestsContextValue {
-  requests: ServiceRequest[];
-  getRequest: (id: string) => ServiceRequest | undefined;
-  // The request shown in the Services tab for the logged user (it is ONE, not a list).
-  currentRequest: ServiceRequest | undefined;
-  getRole: (request: ServiceRequest) => RequestRole | null;
-
-  draft: ScheduleDraft | null;
-  saveDraft: (draft: ScheduleDraft) => void;
-  createRequest: () => ServiceRequest | null;
-  lastCreatedId: string | null;
-
-  acceptRequest: (id: string) => void;
-  rejectRequest: (id: string) => void;
-  finishRequest: (id: string) => void;
-  // Hides the request from the Services tab (it is still reachable by its id).
-  closeRequest: (id: string) => void;
-
-  getRating: (requestId: string) => Rating | undefined;
-  addRating: (requestId: string, rating: Rating["rating"], comment: string) => void;
-
-  // Simulations: they return a cleanup function, so they can be used directly in a useEffect.
-  simulateProviderFinish: (id: string) => () => void;
-  simulateClientRating: (id: string) => () => void;
+  requests: ServiceRequest[]; // Todas las solicitudes.
+  getRequest: (id: string) => ServiceRequest | undefined; // Busca una solicitud por id.
+  currentRequest: ServiceRequest | undefined; // La solicitud que se ve en la pestaña Servicios.
+  getRole: (request: ServiceRequest) => RequestRole | null; // Dice si eres cliente o prestador.
+ 
+  draft: ScheduleDraft | null; // Formulario guardado.
+  saveDraft: (draft: ScheduleDraft) => void; // Guarda el formulario.
+  createRequest: () => ServiceRequest | null; // Crea la solicitud con el formulario.
+  lastCreatedId: string | null; // Id de la última solicitud creada.
+ 
+  acceptRequest: (id: string) => void; // Prestador acepta.
+  rejectRequest: (id: string) => void; // Prestador rechaza.
+  finishRequest: (id: string) => void; // Prestador termina.
+  closeRequest: (id: string) => void; // Oculta la solicitud de la pestaña Servicios.
+ 
+  getRating: (requestId: string) => Rating | undefined; // Busca la calificación.
+  addRating: (requestId: string, rating: Rating["rating"], comment: string) => void; // Guarda la calificación.
+ 
+  simulateProviderFinish: (id: string) => () => void; // Simula que el prestador termina.
+  simulateClientRating: (id: string) => () => void; // Simula que el cliente califica.
 }
-
+ 
+// Crea el contexto (el lugar compartido).
 const RequestsContext = createContext<RequestsContextValue | null>(null);
-
-// Order used to pick the current request when the user has several open ones.
+ 
+// Orden para elegir qué solicitud mostrar primero (menor número = más importante).
 const STATUS_PRIORITY: Record<ServiceStatus, number> = {
-  active: 0,
-  accepted: 1,
-  pending: 2,
-  finished: 3,
-  rejected: 4,
-  cancelled: 5,
+  active: 0, // En curso.
+  accepted: 1, // Aceptada.
+  pending: 2, // Esperando respuesta.
+  finished: 3, // Terminada.
+  rejected: 4, // Rechazada.
+  cancelled: 5, // Cancelada.
 };
-
+ 
+// Devuelve el id del prestador (el dueño de la publicación).
 function getProviderId(request: ServiceRequest) {
   return getPostById(request.post_id)?.user_id;
 }
-
+ 
+// Componente que comparte todos los datos y funciones con las pantallas.
 export const RequestsProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useSession();
-  const { showNotification } = useNotifications();
-
-  const [requests, setRequests] = useState<ServiceRequest[]>(() => [...SERVICE_REQUESTS]);
-  const [ratings, setRatings] = useState<Rating[]>(() => [...RATINGS]);
-  const [closedIds, setClosedIds] = useState<string[]>([]);
-  const [createdIds, setCreatedIds] = useState<string[]>([]);
-  const [draft, setDraft] = useState<ScheduleDraft | null>(null);
-  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
-
-  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  const notifiedIncoming = useRef(new Set<string>());
-
+  const { user } = useSession(); // Usuario que inició sesión.
+  const { showNotification } = useNotifications(); // Función para mostrar avisos.
+ 
+  const [requests, setRequests] = useState<ServiceRequest[]>(() => [...SERVICE_REQUESTS]); // Lista de solicitudes.
+  const [ratings, setRatings] = useState<Rating[]>(() => [...RATINGS]); // Lista de calificaciones.
+  const [closedIds, setClosedIds] = useState<string[]>([]); // Ids de solicitudes ocultas.
+  const [createdIds, setCreatedIds] = useState<string[]>([]); // Ids creados en esta sesión.
+  const [draft, setDraft] = useState<ScheduleDraft | null>(null); // Formulario guardado.
+  const [lastCreatedId, setLastCreatedId] = useState<string | null>(null); // Última solicitud creada.
+ 
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>()); // Temporizadores activos.
+  const notifiedIncoming = useRef(new Set<string>()); // Solicitudes ya avisadas al prestador.
+ 
+  // Al cerrar la app, apaga los temporizadores pendientes.
   useEffect(() => {
     const pending = timers.current;
     return () => pending.forEach(clearTimeout);
   }, []);
-
-  // setTimeout that is cleared if the app is closed. Returns a function to cancel it.
+ 
+  // Ejecuta algo después de un tiempo. Devuelve una función para cancelarlo.
   const schedule = useCallback((callback: () => void, delay: number) => {
     const timer = setTimeout(() => {
       timers.current.delete(timer);
@@ -103,41 +105,45 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       timers.current.delete(timer);
     };
   }, []);
-
+ 
+  // Busca una solicitud por id.
   const getRequest = useCallback((id: string) => requests.find((r) => r.id === id), [requests]);
-
+ 
+  // Dice si el usuario es cliente o prestador en esta solicitud.
+  // Para ver pantallas del prestador, hay que entrar con el dueño de la publicación.
   const getRole = useCallback(
     (request: ServiceRequest): RequestRole | null => {
-      if (!user) return null;
-      if (request.client_id === user.id) return "client";
-      if (getProviderId(request) === user.id) return "provider";
-      return null;
+      if (!user) return null; // Nadie inició sesión.
+      if (request.client_id === user.id) return "client"; // Es quien pidió.
+      if (getProviderId(request) === user.id) return "provider"; // Es quien ofrece.
+      return null; // No tiene nada que ver.
     },
     [user],
   );
-
+ 
+  // Elige la solicitud que se muestra en la pestaña Servicios.
   const currentRequest = useMemo(() => {
     if (!user) return undefined;
+    // Se queda solo con las solicitudes que le sirven al usuario.
     const candidates = requests.filter((request) => {
-      if (closedIds.includes(request.id) || request.status === "cancelled") return false;
-      // Finished and paid requests from the mock are history, not the current service.
-      if (request.status === "finished" && request.payment_confirmed) return false;
-      if (request.client_id === user.id) return true;
-      // The provider doesn't keep rejected requests: they go back to the empty state.
-      return getProviderId(request) === user.id && request.status !== "rejected";
+      if (closedIds.includes(request.id) || request.status === "cancelled") return false; // Oculta o cancelada: no.
+      if (request.status === "finished" && request.payment_confirmed) return false; // Terminada y pagada: no.
+      if (request.client_id === user.id) return true; // Soy el cliente: sí.
+      return getProviderId(request) === user.id && request.status !== "rejected"; // Soy prestador y no la rechacé: sí.
     });
-    // Once the user has requested something in this session, only those requests count
-    // (the newest wins), so the old mock data doesn't come back after finishing the flow.
+    // Si creé una solicitud en esta sesión, muestro la más nueva.
     const madeHere = requests.some((r) => createdIds.includes(r.id) && r.client_id === user.id);
     if (madeHere) return candidates.find((r) => createdIds.includes(r.id));
+    // Si no, muestro la más importante según STATUS_PRIORITY.
     return [...candidates].sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status])[0];
   }, [requests, closedIds, createdIds, user]);
-
+ 
+  // Cambia el estado de una solicitud.
   const updateStatus = useCallback((id: string, status: ServiceStatus) => {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   }, []);
-
-  // Builds the notification data of the other person of the request.
+ 
+  // Muestra un aviso al cliente cuando el prestador acepta, rechaza o termina.
   const notifyAbout = useCallback(
     (request: ServiceRequest, type: "request_accepted" | "request_rejected" | "services_finished") => {
       const providerId = getProviderId(request);
@@ -146,58 +152,64 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
         type,
         name: provider?.name ?? "Prestador",
         avatarUrl: provider?.profile_picture ?? undefined,
+        // Si terminó, lleva a calificar; si no, al detalle.
         href: type === "services_finished" ? `/requests/${request.id}/rating` : `/requests/${request.id}`,
       });
     },
     [showNotification],
   );
-
+ 
+  // Guarda el formulario.
   const saveDraft = useCallback((newDraft: ScheduleDraft) => setDraft(newDraft), []);
-
+ 
+  // Crea una solicitud nueva con los datos del formulario.
   const createRequest = useCallback(() => {
     if (!draft || !user) return null;
     const pricePerHour = getHourlyRate(draft.post_id);
     const request: ServiceRequest = {
-      id: `r${Date.now()}`,
+      id: `r${Date.now()}`, // Id único.
       post_id: draft.post_id,
-      client_id: user.id,
+      client_id: user.id, // El usuario actual es el cliente.
       meeting_address: draft.meeting_address,
-      meeting_date: `${draft.date}T${draft.time}`,
+      meeting_date: `${draft.date}T${draft.time}`, // Une fecha y hora.
       hours: draft.hours,
-      status: "pending",
+      status: "pending", // Empieza esperando respuesta.
       request_image: draft.request_image,
-      payment_confirmed: false,
-      price: pricePerHour * draft.hours,
+      payment_confirmed: false, // Aún no pagada.
+      price: pricePerHour * draft.hours, // Precio total.
     };
-    // Also added to the shared mock so the screens of the others (chat, payment) can find it by id.
-    SERVICE_REQUESTS.push(request);
-    setRequests((prev) => [request, ...prev]);
-    setCreatedIds((prev) => [request.id, ...prev]);
+    SERVICE_REQUESTS.push(request); // La agrega a los datos de prueba para otras pantallas.
+    setRequests((prev) => [request, ...prev]); // La agrega a la lista.
+    setCreatedIds((prev) => [request.id, ...prev]); // La marca como creada en esta sesión.
     setLastCreatedId(request.id);
-    setDraft(null);
-
-    // Simulation: after a few seconds the provider accepts the request.
+    setDraft(null); // Limpia el formulario.
+ 
+    // Simula que el prestador acepta a los 6 segundos.
     schedule(() => {
       updateStatus(request.id, "accepted");
       notifyAbout(request, "request_accepted");
     }, PROVIDER_RESPONSE_DELAY);
-
+ 
     return request;
   }, [draft, user, schedule, updateStatus, notifyAbout]);
-
-  const acceptRequest = useCallback((id: string) => updateStatus(id, "active"), [updateStatus]);
-  const rejectRequest = useCallback((id: string) => updateStatus(id, "rejected"), [updateStatus]);
-  const finishRequest = useCallback((id: string) => updateStatus(id, "finished"), [updateStatus]);
-
+ 
+  // Acciones del prestador.
+  const acceptRequest = useCallback((id: string) => updateStatus(id, "active"), [updateStatus]); // Aceptar.
+  const rejectRequest = useCallback((id: string) => updateStatus(id, "rejected"), [updateStatus]); // Rechazar.
+  const finishRequest = useCallback((id: string) => updateStatus(id, "finished"), [updateStatus]); // Terminar.
+ 
+  // Oculta una solicitud de la pestaña Servicios.
   const closeRequest = useCallback((id: string) => {
     setClosedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   }, []);
-
+ 
+  // Busca la calificación de una solicitud.
   const getRating = useCallback(
     (requestId: string) => ratings.find((r) => r.service_request_id === requestId),
     [ratings],
   );
-
+ 
+  // Guarda la calificación del cliente al prestador (reemplaza si ya existía).
   const addRating = useCallback((requestId: string, rating: Rating["rating"], comment: string) => {
     const request = SERVICE_REQUESTS.find((r) => r.id === requestId);
     const providerId = request ? getProviderId(request) : undefined;
@@ -206,7 +218,8 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       { id: `g${Date.now()}`, service_request_id: requestId, rated_user_id: providerId ?? "", rating, comment },
     ]);
   }, []);
-
+ 
+  // Simula que el prestador termina el servicio a los 12 segundos y avisa al cliente.
   const simulateProviderFinish = useCallback(
     (id: string) =>
       schedule(() => {
@@ -217,12 +230,13 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       }, PROVIDER_FINISH_DELAY),
     [schedule, updateStatus, notifyAbout],
   );
-
+ 
+  // Simula que el cliente califica al prestador con 4 estrellas a los 4 segundos.
   const simulateClientRating = useCallback(
     (id: string) =>
       schedule(() => {
         setRatings((prev) => {
-          if (prev.some((r) => r.service_request_id === id)) return prev;
+          if (prev.some((r) => r.service_request_id === id)) return prev; // Si ya hay calificación, no hace nada.
           const request = SERVICE_REQUESTS.find((r) => r.id === id);
           return [
             ...prev,
@@ -238,17 +252,17 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       }, CLIENT_RATING_DELAY),
     [schedule],
   );
-
-  // Simulation for the provider: when someone has requested their service, the notification appears.
+ 
+  // Si el usuario es prestador y tiene una solicitud pendiente, le muestra un aviso (una sola vez).
   useEffect(() => {
     if (!user) return;
     const incoming = requests.find(
       (r) => r.status === "pending" && getProviderId(r) === user.id && !notifiedIncoming.current.has(r.id),
     );
     if (!incoming) return;
-
+ 
     return schedule(() => {
-      notifiedIncoming.current.add(incoming.id);
+      notifiedIncoming.current.add(incoming.id); // Marca como avisada.
       const client = getUserById(incoming.client_id);
       const post = getPostById(incoming.post_id);
       showNotification({
@@ -260,18 +274,23 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       });
     }, INCOMING_REQUEST_DELAY);
   }, [user, requests, schedule, showNotification]);
-
+ 
+  // Junta todo lo que se comparte con las pantallas.
   const value: RequestsContextValue = {requests,getRequest,currentRequest,getRole,draft,saveDraft,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,closeRequest,getRating,addRating,simulateProviderFinish,simulateClientRating,
   };
-
+ 
+  // Entrega los datos a las pantallas que están dentro.
   return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>;
 };
-
+ 
+// Función que usan las pantallas para acceder a las solicitudes.
 export const useRequests = () => {
   const context = useContext(RequestsContext);
-
+ 
+  // Error si se usa fuera de RequestsProvider.
   if (!context) {
     throw new Error("useRequests must be used within a RequestsProvider");
   }
   return context;
 };
+ 

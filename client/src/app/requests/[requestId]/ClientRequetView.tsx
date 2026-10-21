@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
@@ -13,24 +12,20 @@ interface Props {
   imageUrl: string;
 }
 
-// What the client sees while the request is not active: pending, rejected, finished or cancelled.
+//vista del cliente cuando el servicio no pas ahora mismo
 export function ClientRequestView({ request, provider, imageUrl }: Props) {
   const router = useRouter();
-  const { closeRequest } = useRequests();
+  const { closeRequest } = useRequests();//se pide y se cierra
   const providerName = provider?.name ?? "El prestador";
-
+//condicion de que si se rechaza 
   if (request.status === "rejected") {
-    const handleSearch = () => {
+    const handleSearch = () => {//se cierra la peticion 
       closeRequest(request.id);
       router.push("/search");
     };
+    //se dibuja la tarjeta 
     return (
-      <ServiceDetailCard
-        person={provider}
-        request={request}
-        imageUrl={imageUrl}
-        badge={<StatusBadge label="Rechazado" tone="orange" />}
-      >
+      <ServiceDetailCard person={provider} request={request} imageUrl={imageUrl} badge={<StatusBadge label="Rechazado" tone="orange" />}>
         <p className="mt-5 text-center text-sm text-white/80">{providerName} no pudo aceptar tu solicitud.</p>
         <div className="mx-auto mt-4 w-full max-w-60">
           <Button variant="accent" onClick={handleSearch}>
@@ -40,15 +35,9 @@ export function ClientRequestView({ request, provider, imageUrl }: Props) {
       </ServiceDetailCard>
     );
   }
-
+//condicion que dice que ya se acabo el trabajo
   if (request.status === "finished") {
-    return (
-      <ServiceDetailCard
-        person={provider}
-        request={request}
-        imageUrl={imageUrl}
-        badge={<StatusBadge label="Finalizado" />}
-      >
+    return (<ServiceDetailCard person={provider} request={request} imageUrl={imageUrl} badge={<StatusBadge label="Finalizado" />}>
         <p className="mt-5 text-center text-sm text-white/80">Tu servicio con {providerName} ha terminado.</p>
         <div className="mx-auto mt-4 w-full max-w-60">
           <Button onClick={() => router.push(`/requests/${request.id}/rating`)}>Calificar servicio</Button>
@@ -56,35 +45,18 @@ export function ClientRequestView({ request, provider, imageUrl }: Props) {
       </ServiceDetailCard>
     );
   }
-
+//pedido cancelado 
   if (request.status === "cancelled") {
-    return (
-      <ServiceDetailCard
-        person={provider}
-        request={request}
-        imageUrl={imageUrl}
-        badge={<StatusBadge label="Cancelado" tone="muted" />}
+    return (<ServiceDetailCard person={provider} request={request} imageUrl={imageUrl} badge={<StatusBadge label="Cancelado" tone="muted" />}
       />
     );
   }
 
-  // Pending: waiting for the provider's answer.
-  return (
-    <ServiceDetailCard
-      person={provider}
-      request={request}
-      imageUrl={imageUrl}
-      badge={<StatusBadge label="En proceso..." tone="muted" />}
-    >
+  //queda al pendiente de la respuesta del provider
+  return (<ServiceDetailCard person={provider} request={request} imageUrl={imageUrl} badge={<StatusBadge label="En proceso..." tone="muted" />}>
       <p className="mt-5 text-center text-sm text-white/80">
         Esperando la respuesta de {providerName}. Te avisaremos cuando responda.
       </p>
-      <Link
-        href={`/chat/${request.id}`}
-        className="mx-auto mt-4 flex h-9 w-full max-w-60 items-center justify-center rounded-[10px] border border-truek-lime text-base font-bold text-truek-lime transition-transform active:scale-[0.98]"
-      >
-        Abrir chat
-      </Link>
     </ServiceDetailCard>
   );
 }

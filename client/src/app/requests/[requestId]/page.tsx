@@ -1,56 +1,79 @@
 "use client";
 
-import { use } from "react";
-import { NavBar, TopHeader } from "@/components/ui";
-import { useRequests } from "../../../context/RequestContext";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
+import { Button, NavBar, TopHeader } from "@/components/ui";
+import { useRequests } from "@/context/RequestContext";
+import { useSession } from "@/context/SessionContext";
 import { getPostById, getUserById } from "@/lib/mock";
-import { ActiveServiceView } from "./ActiveServiceView";
-import { ClientRequestView } from "./ClientRequetView";
-import { FinishedServiceView } from "./FinishedServiceview";
-import { ProviderRequestView } from "./ProviderRequestView";
+import { RequestCard } from "../RequestCard";
 
-const RequestDetail = ({ requestId }: { requestId: string }) => {
-  const { getRequest, getRole } = useRequests();
-  const request = getRequest(requestId);
-  const post = request ? getPostById(request.post_id) : undefined;
-  // Only the client and the provider of the request can see it.
-  const role = request ? getRole(request) : null;
+// Services tab: it shows the CURRENT service of the logged user, not a list.
+export default function RequestsPage() {
+  const { user } = useSession();
+  const router = useRouter();
+  const { currentRequest, getRole, finishRequest } = useRequests();
+  const post = currentRequest ? getPostById(currentRequest.post_id) : undefined;
+  const role = currentRequest ? getRole(currentRequest) : null;
 
-  if (!request || !post || !role) {
-    return <p className="m-auto text-sm text-truek-placeholder">No encontramos este servicio</p>;
-  }
+  // The chat bubble only appears when the service was accepted
+  const showChat = currentRequest?.status === "accepted" || currentRequest?.status === "active";
 
-  const imageUrl = request.request_image ?? post.post_image;
-
-  if (role === "client") {
-    const provider = getUserById(post.user_id);
-    if (request.status === "accepted" || request.status === "active") {
-      return <ActiveServiceView request={request} person={provider} role="client" imageUrl={imageUrl} />;
-    }
-    return <ClientRequestView request={request} provider={provider} imageUrl={imageUrl} />;
-  }
-
-  const client = getUserById(request.client_id);
-  switch (request.status) {
-    case "accepted":
-    case "active":
-      return <ActiveServiceView request={request} person={client} role="provider" imageUrl={imageUrl} />;
-    case "finished":
-      return <FinishedServiceView request={request} client={client} imageUrl={imageUrl} />;
-    default:
-      return <ProviderRequestView request={request} client={client} imageUrl={imageUrl} />;
-  }
-};
-
-export default function RequestDetailPage({ params }: { params: Promise<{ requestId: string }> }) {
-  const { requestId } = use(params);
+  // The client finishes the service: first he rates it and then he pays
+  const handleFinish = () => {
+    if (!currentRequest) return;
+    finishRequest(currentRequest.id);
+    router.push(`/requests/${currentRequest.id}/rating`);
+  };
 
   return (
     <div className="flex min-h-dvh flex-col">
       <TopHeader title="Servicios" />
-      <main className="flex flex-1 flex-col px-5 pb-8 pt-6">
-        <RequestDetail requestId={requestId} />
+
+      <main className="flex-1 px-5 pt-6">
+        {currentRequest && post && role ? (
+          <>
+            <RequestCard
+              request={currentRequest}
+              post={post}
+              role={role}
+              person={getUserById(role === "client" ? post.user_id : currentRequest.client_id)}
+            />
+            <p className="mt-4 text-center text-xs text-truek-placeholder">Toca la tarjeta para ver el detalle</p>
+
+            {/* Only the client sees this button when the service was accepted */}
+            {showChat && role === "client" && (
+              <div className="mx-auto mt-8 w-full max-w-60">
+                <Button onClick={handleFinish}>Finalizar</Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-4 pt-4 text-center">
+            <p className="text-sm font-semibold text-white">No tienes servicios</p>
+            {user?.role !== "provider" && (
+              <Link href="/search" className="border-b-2 border-truek-lime pb-0.5 text-sm font-bold text-truek-lime">
+                Buscar servicios
+              </Link>
+            )}
+          </div>
+        )}
       </main>
+
+      {/* Chat bubble: it goes directly to the chat of the service */}
+      {showChat && currentRequest && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-30 z-40 mx-auto flex w-full max-w-110 justify-end px-5">
+          <Link
+            href={`/chat/${currentRequest.id}`}
+            aria-label="Abrir chat"
+            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-truek-lime text-truek-black shadow-lg"
+          >
+            <ChatBubbleLeftEllipsisIcon className="size-8" strokeWidth={2} />
+          </Link>
+        </div>
+      )}
+
       <NavBar activeId="servicios" />
     </div>
   );

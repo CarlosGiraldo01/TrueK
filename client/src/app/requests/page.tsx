@@ -1,3 +1,6 @@
+
+//pagina principal de servicios 
+//Es la puerta de entrada a todo el flujo: pedir, aceptar, servicio activo, terminar, calificar y pagar.
 "use client";
 
 import Link from "next/link";
@@ -7,8 +10,10 @@ import { useSession } from "@/context/SessionContext";
 import { getPostById, getUserById } from "@/lib/mock";
 import { RequestCard } from "./RequestCard";
 
-// Services tab: it shows the CURRENT service of the logged user, not a list.
+// La pestaña "Servicios".
+// No muestra una lista: muestra solo el servicio que tienes AHORA MISMO.
 export default function RequestsPage() {
+  //
   const { user } = useSession();
   const { currentRequest, getRole } = useRequests();
   const post = currentRequest ? getPostById(currentRequest.post_id) : undefined;
@@ -20,12 +25,7 @@ export default function RequestsPage() {
 
       <main className="flex-1 px-5 pt-6">
         {currentRequest && post && role ? (
-          <>
-            <RequestCard
-              request={currentRequest}
-              post={post}
-              role={role}
-              person={getUserById(role === "client" ? post.user_id : currentRequest.client_id)}
+          <><RequestCard request={currentRequest} post={post} role={role} person={getUserById(role === "client" ? post.user_id : currentRequest.client_id)}
             />
             <p className="mt-4 text-center text-xs text-truek-placeholder">Toca la tarjeta para ver el detalle</p>
           </>

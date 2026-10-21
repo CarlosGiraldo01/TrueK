@@ -1,3 +1,5 @@
+//tarjeta que resume servicion
+//precio y hora //servicio pedid 
 import { formatPrice } from "@/app/payment/formatPrice";
 import { formatHours } from "../requests/formatService";
 
@@ -10,7 +12,6 @@ interface ServiceSummaryCardProps {
   pricePerHour?: number;
 }
 
-// Lime card with the picture of the service and its main data (Confirmar servicio, Servicio pedido).
 export function ServiceSummaryCard({
   title,
   imageUrl,

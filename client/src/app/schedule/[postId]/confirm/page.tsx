@@ -1,3 +1,4 @@
+//paso 2: el archivo que acabamos de comentar, donde se revisa todo y se confirma.
 "use client";
 
 import { use } from "react";

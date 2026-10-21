@@ -3,51 +3,42 @@ import type { RequestRole } from "../../context/RequestContext";
 import type { Post, ServiceRequest, User } from "@/lib/mock";
 import { cn } from "@/components/ui/cn";
 import { formatHours } from "./formatService";
-
+// Estos son los 3 colores que puede tener el puntito:
+// verde limón, naranja o gris apagado.
 type Tone = "lime" | "orange" | "muted";
 
-// Title and dot color of the card, depending on who looks at it and the status.
-function getCardState(
-  status: ServiceRequest["status"],
-  role: RequestRole,
-): { title: string; note?: string; tone: Tone } {
-  switch (status) {
-    case "pending":
+// Esta función decide qué título, qué mensajito y qué color lleva la tarjeta.
+function getCardState(status: ServiceRequest["status"],role: RequestRole,): { title: string; note?: string; tone: Tone } {
+  switch (status) {case "pending":
       return role === "client"
         ? { title: "Solicitud de servicio", note: "En proceso...", tone: "lime" }
-        : { title: "Solicitud de servicio", note: "Nueva solicitud", tone: "lime" };
-    case "accepted":
-      return role === "client"
+        : { title: "Solicitud de servicio", note: "Nueva solicitud", tone: "lime" };case "accepted": return role === "client"
         ? { title: "Solicitud aceptada", tone: "lime" }
-        : { title: "Servicio activo", tone: "lime" };
-    case "active":
-      return { title: "Servicio activo", tone: "lime" };
-    case "finished":
-      return { title: "Servicio finalizado", tone: "lime" };
-    case "rejected":
-      return { title: "Servicio rechazado", tone: "orange" };
-    case "cancelled":
-      return { title: "Servicio cancelado", tone: "muted" };
+        : { title: "Servicio activo", tone: "lime" };case "active":
+        return { title: "Servicio activo", tone: "lime" };case "finished":
+        return { title: "Servicio finalizado", tone: "lime" };case "rejected":
+        return { title: "Servicio rechazado", tone: "orange" };case "cancelled":
+        return { title: "Servicio cancelado", tone: "muted" };
   }
 }
-
+// Cajita de pinturas: para cada color
 const dotTones: Record<Tone, string> = {
   lime: "bg-truek-lime",
   orange: "bg-truek-orange",
   muted: "bg-truek-input",
 };
-
+// La lista de cosas que necesita la tarjeta
 interface RequestCardProps {
   request: ServiceRequest;
   post: Post;
-  person: User | undefined; // The other person of the request.
+  person: User | undefined; 
   role: RequestRole;
 }
 
-// Small card of the Services tab. Tapping it opens the detail.
+// La tarjetita de la pestaña "Servicios". Al tocarla, se abre el detalle.
 export function RequestCard({ request, post, person, role }: RequestCardProps) {
   const { title, note, tone } = getCardState(request.status, role);
-
+// Toda la tarjeta es una puerta que lleva al detalle de este pedido.
   return (
     <Link
       href={`/requests/${request.id}`}

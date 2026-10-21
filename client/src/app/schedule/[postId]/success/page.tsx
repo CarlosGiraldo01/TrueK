@@ -1,3 +1,4 @@
+//la pantalla de “¡Listo!”.
 "use client";
 
 import Link from "next/link";
