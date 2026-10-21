@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Button, Logo, NavBar, StarRating, TextField, TopHeader } from "@/components/ui";
-import { useRequests } from "../../../../context/RequestContext";
+import { useRouter } from "next/navigation";// "useRouter" es como un GPS: nos deja ir de una página a otra.
+import { Button, Logo, NavBar, StarRating, TextField, TopHeader } from "@/components/ui";//los componenetes 
+import { useRequests } from "../../../../context/RequestContext";//
 import { getPostById, getUserById, type Rating } from "@/lib/mock";
 
 const RatingScreen = ({ requestId }: { requestId: string }) => {
