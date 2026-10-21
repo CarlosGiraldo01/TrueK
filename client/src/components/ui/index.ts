@@ -1,6 +1,5 @@
 export { Avatar } from "./Avatar";
 export { Button } from "./Button";
-export { FeedHeader } from "./FeedHeader";
 export { Logo } from "./Logo";
 export { NavBar } from "./NavBar";
 export type { NavItemId } from "./NavBar";
