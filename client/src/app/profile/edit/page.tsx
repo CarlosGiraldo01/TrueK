@@ -6,11 +6,25 @@ import { ChevronLeftIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { NavBar } from "@/components/ui/NavBar";
 
+/**
+ * Componente de la pantalla 'Editar perfil'.
+ * 
+ * Permite al usuario modificar sus datos personales:
+ * - Foto de perfil (mediante carga de archivo local procesado a Base64).
+ * - Nombre o alias.
+ * - Edad.
+ * - Ubicación geográfica.
+ * - Descripción o biografía personal.
+ * - Opción para cerrar sesión.
+ */
 export default function EditProfilePage() {
   const router = useRouter();
   const { user, updateUser, logout } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Estado de los campos editables del perfil, inicializado con los datos actuales del usuario.
+   */
   const [formData, setFormData] = useState({
     name: user?.name ?? "",
     age: user?.age ? String(user.age) : "",
@@ -18,26 +32,47 @@ export default function EditProfilePage() {
     description: user?.description ?? "",
   });
 
+  /**
+   * Imagen previa del avatar en Base64 o URL.
+   */
   const [avatarPreview, setAvatarPreview] = useState<string>(
     user?.profile_picture || "/brand/logo-icon.png"
   );
+
   const [isSaving, setIsSaving] = useState(false);
 
+  /**
+   * Manejador de cambio de fotografía de perfil:
+   * Convierte la nueva imagen seleccionada a Base64 con FileReader para persistencia inmediata.
+   * 
+   * @param e - Evento de cambio del input file.
+   */
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAvatarPreview(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
+  /**
+   * Manejador de guardado de los datos actualizados del perfil:
+   * Aplica los cambios mediante updateUser en el contexto de sesión y redirige a /profile.
+   * 
+   * @param e - Evento de envío del formulario.
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     const parsedAge = parseInt(formData.age, 10);
 
-    // Actualizar datos del usuario activo
+    // Actualiza los datos del usuario en la sesión global
     updateUser({
       name: formData.name.trim() || user?.name,
       age: isNaN(parsedAge) ? user?.age : parsedAge,
@@ -48,11 +83,15 @@ export default function EditProfilePage() {
 
     setTimeout(() => {
       setIsSaving(false);
-      // Redirige al perfil donde se muestran los cambios actualizados
+      // Redirige al perfil para visualizar la información actualizada
       router.push("/profile");
     }, 200);
   };
 
+  /**
+   * Manejador de cierre de sesión:
+   * Limpia los datos de sesión activa en localStorage y redirige al inicio de sesión.
+   */
   const handleLogout = () => {
     logout();
     router.push("/login");
@@ -89,7 +128,7 @@ export default function EditProfilePage() {
       */}
       <main className="flex-1 px-5 py-6 pb-28">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Avatar con icono de cámara */}
+          {/* Avatar con botón e icono de cámara para cambiar la foto */}
           <div className="flex justify-center my-2">
             <input
               ref={fileInputRef}
@@ -182,7 +221,7 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Botón: Actualizar perfil (Naranja TrueK #FF5E1B) */}
+          {/* Botón: Actualizar perfil (Color naranja TrueK #FF5E1B) */}
           <button
             type="submit"
             disabled={isSaving}
@@ -204,7 +243,7 @@ export default function EditProfilePage() {
         </form>
       </main>
 
-      {/* Men? inferior */}
+      {/* Menú inferior */}
       <NavBar activeId="perfil" />
     </div>
   );

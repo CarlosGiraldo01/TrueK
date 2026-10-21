@@ -10,12 +10,23 @@ import { usePosts } from "@/context/PostsContext";
 
 interface FeedViewProps {
   /**
-   * Rol forzado para la vista (?til para rutas fijas como /feed/provider y /feed/client).
+   * Rol forzado para la vista (útil para rutas fijas como /feed/provider y /feed/client).
    * Si no se especifica, toma el rol activo actual de la sesión.
    */
   forcedRole?: UserRole;
 }
 
+/**
+ * Componente unificado de la vista de Feed Principal de TrueK.
+ * 
+ * Reglas de negocio y presentación por rol:
+ * - Rol Proveedor ('provider'): Se muestra el botón (+) en el encabezado superior para
+ *   crear trueks o publicar servicios.
+ * - Rol Cliente ('client'): El botón (+) no se renderiza en el DOM, manteniendo la interfaz
+ *   limpia para consumo y búsqueda de experiencias.
+ * - En ambos roles se visualiza el listado de tarjetas de trueks con foto, nombre, descripción,
+ *   etiquetas, ubicación, estrellas y enlace 'Ver más'.
+ */
 export function FeedView({ forcedRole }: FeedViewProps) {
   const router = useRouter();
   const { activeRole, setActiveRole } = useSession();
@@ -25,6 +36,10 @@ export function FeedView({ forcedRole }: FeedViewProps) {
   const currentRole: UserRole = forcedRole ?? activeRole;
   const isProvider = currentRole === "provider";
 
+  /**
+   * Manejador del botón (+) para crear publicaciones:
+   * Sincroniza el rol activo a 'provider' y navega al formulario de creación (/feed/create).
+   */
   const handleCreatePost = () => {
     if (activeRole !== "provider") {
       setActiveRole("provider");
@@ -32,18 +47,21 @@ export function FeedView({ forcedRole }: FeedViewProps) {
     router.push("/feed/create");
   };
 
+  /**
+   * Navega a la vista detallada de la publicación seleccionada.
+   * 
+   * @param postId - ID único de la publicación.
+   */
   const handleSeeMore = (postId: string) => {
-    router.push(`/post/${postId}`);
+    router.push("/post/" + postId);
   };
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#D3FC31] selection:text-black">
       {/* 
         =======================================================================
-        BARRA SUPERIOR (HEADER): LÓGICA DE VISIBILIDAD CONDICIONAL SEGÚN ROL
+        BARRA SUPERIOR (HEADER): VISIBILIDAD CONDICIONAL DEL BOTÓN (+) POR ROL
         =======================================================================
-        - Rol Proveedor: Se renderiza el botón de acción (+) en la esquina superior derecha.
-        - Rol Cliente: El botón (+) se destruye/omite totalmente del árbol DOM.
       */}
       <FeedHeader
         role={currentRole}
@@ -81,6 +99,7 @@ export function FeedView({ forcedRole }: FeedViewProps) {
         =======================================================================
         BADGE FLOTANTE DE CONTROL / CAMBIO RÁPIDO DE ROL
         =======================================================================
+        Facilita alternar instantáneamente entre rol Proveedor y Cliente para pruebas.
       */}
       <div className="fixed bottom-20 right-4 z-40">
         <button
@@ -95,9 +114,10 @@ export function FeedView({ forcedRole }: FeedViewProps) {
           aria-label="Alternar rol activo"
         >
           <span
-            className={`size-2 rounded-full ${
-              isProvider ? "bg-[#D3FC31] animate-pulse" : "bg-[#38BDF8]"
-            }`}
+            className={
+              "size-2 rounded-full " +
+              (isProvider ? "bg-[#D3FC31] animate-pulse" : "bg-[#38BDF8]")
+            }
           />
           <span>
             Rol: <strong className="text-white">{isProvider ? "Proveedor" : "Cliente"}</strong>

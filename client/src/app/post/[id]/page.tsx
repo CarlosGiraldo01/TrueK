@@ -12,6 +12,21 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+/**
+ * Componente de la pantalla 'Publicación' (Detalle del Truek).
+ * 
+ * Muestra toda la información de una experiencia o servicio ofrecido:
+ * - Fotografía principal en gran formato.
+ * - Nombre del prestador, edad y tiempo transcurrido desde la publicación.
+ * - Píldoras con las categorías temáticas.
+ * - Calificación con estrellas y ciudad/zona.
+ * - Sección 'Sobre mí' con la descripción personal del prestador.
+ * - Sección 'Qué ofrezco' con los detalles del intercambio o servicio.
+ * - Sección 'Costo' con la tarifa formateada por hora ($X.XXX/h).
+ * - Botón 'Contratar servicio' condicional:
+ *   * Visible para Clientes (permite iniciar el proceso de contratación).
+ *   * Oculto para Proveedores (un proveedor visualiza su oferta o publicaciones sin botón de contratación).
+ */
 export default function PostDetailPage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,8 +34,15 @@ export default function PostDetailPage({ params }: PageProps) {
   const { getPostById } = usePosts();
   const { activeRole } = useSession();
 
+  /**
+   * Obtiene la publicación solicitada a partir de su ID.
+   */
   const post = getPostById(id);
   const isClient = activeRole === "client";
+
+  /**
+   * Identifica si la vista proviene de la creación inmediata de un truek (?created=true).
+   */
   const justCreated = searchParams.get("created") === "true";
 
   if (!post) {
@@ -40,8 +62,12 @@ export default function PostDetailPage({ params }: PageProps) {
     );
   }
 
+  /**
+   * Manejador del botón volver (<):
+   * - Si la publicación acaba de crearse, redirige al perfil para verla en la cuadrícula.
+   * - De lo contrario, regresa a la vista anterior del historial de navegación.
+   */
   const handleBack = () => {
-    // Si viene de crear la publicación, volver al perfil para verla en su grid
     if (justCreated) {
       router.push("/profile");
     } else {
@@ -49,22 +75,28 @@ export default function PostDetailPage({ params }: PageProps) {
     }
   };
 
+  /**
+   * Manejador para contratar servicio:
+   * Redirige al flujo de solicitud y pago reservado para el rol cliente.
+   */
   const handleHireService = () => {
-    // Redirige al flujo de contratación y pago exclusivo del cliente
     router.push("/payment/r1");
   };
 
-  // Formatear precio exacto escrito en la publicación
+  /**
+   * Lógica de formateo de precio:
+   * Convierte valores numéricos a la nomenclatura de moneda local con formato $X.XXX/h.
+   */
   let formattedPrice = "$5.000/h";
   if (post.price) {
     if (typeof post.price === "number") {
-      formattedPrice = `$${post.price.toLocaleString("es-CO")}/h`;
+      formattedPrice = "$" + post.price.toLocaleString("es-CO") + "/h";
     } else {
       const cleanNum = Number(String(post.price).replace(/\D/g, ""));
       if (!isNaN(cleanNum) && cleanNum > 0) {
-        formattedPrice = `$${cleanNum.toLocaleString("es-CO")}/h`;
+        formattedPrice = "$" + cleanNum.toLocaleString("es-CO") + "/h";
       } else {
-        formattedPrice = `${post.price}/h`;
+        formattedPrice = String(post.price) + "/h";
       }
     }
   }
@@ -100,7 +132,7 @@ export default function PostDetailPage({ params }: PageProps) {
       */}
       <main className="flex-1 px-5 py-5 pb-28">
         <article className="flex flex-col gap-4">
-          {/* Imagen principal en gran formato */}
+          {/* Imagen principal en gran formato con bordes redondeados */}
           <div className="aspect-[16/11] w-full overflow-hidden rounded-[22px] bg-black shadow-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -110,7 +142,7 @@ export default function PostDetailPage({ params }: PageProps) {
             />
           </div>
 
-          {/* Nombre, edad y tiempo de publicación */}
+          {/* Fila: Nombre, edad y tiempo de publicación */}
           <div className="flex items-baseline justify-between gap-2 pt-1">
             <h2 className="text-xl font-bold text-white">{post.name}</h2>
             {post.published_ago && (
@@ -123,7 +155,7 @@ export default function PostDetailPage({ params }: PageProps) {
             <p className="-mt-3 text-xs font-semibold text-white/70">{post.age}</p>
           )}
 
-          {/* Etiquetas / Categorías */}
+          {/* Categorías temáticas seleccionadas */}
           <div className="flex flex-wrap gap-2">
             {post.tags.map((tag) => (
               <span
@@ -176,7 +208,7 @@ export default function PostDetailPage({ params }: PageProps) {
             ===================================================================
             BOTÓN 'CONTRATAR SERVICIO' - EXCLUSIVO DEL CLIENTE
             ===================================================================
-            El proveedor NO debe ver este botón cuando visualiza publicaciones.
+            El proveedor NO visualiza este botón al consultar publicaciones.
           */}
           {isClient && (
             <div className="mt-3 pt-2">
