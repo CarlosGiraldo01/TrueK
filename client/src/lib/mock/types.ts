@@ -2,6 +2,7 @@
 // so the real API can replace the mock later without renaming fields. 
 
 export type UserRole = "client" | "provider"; 
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +12,8 @@ export interface User {
   location: string;
   description: string;
   role: UserRole;
+  trueks_count?: number;
+  rating?: number;
 }
 
 export interface Post {
@@ -23,7 +26,12 @@ export interface Post {
   latitude: number;
   longitude: number;
   post_image: string;
-  created_at: string;  
+  created_at: string;
+  age?: number | string;
+  offer?: string;
+  price?: number;
+  published_ago?: string;
+  rating?: number;
 }
 
 export type ServiceStatus =
@@ -33,6 +41,7 @@ export type ServiceStatus =
   | "active"
   | "finished"
   | "cancelled";
+
 export interface ServiceRequest {
   id: string;
   post_id: string;
@@ -45,6 +54,7 @@ export interface ServiceRequest {
   payment_confirmed: boolean;
   price: number;
 }
+
 export interface Rating {
   id: string;
   service_request_id: string;
@@ -66,6 +76,7 @@ export interface Notification {
   type: NotificationType;
   message: string;
 }
+
 export interface Message {
   id: string;
   service_request_id: string;

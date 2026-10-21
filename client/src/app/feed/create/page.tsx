@@ -2,194 +2,245 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
-import { TAGS, POSTS, type Post } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { TAGS } from "@/lib/mock";
 import { NavBar } from "@/components/ui/NavBar";
 
 export default function CreatePostPage() {
   const router = useRouter();
-  const { user, activeRole } = useSession();
+  const { user, activeRole, setActiveRole } = useSession();
+  const { addPost } = usePosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ==========================================================================
-  // RESTRICCIÓN DE ACCESO FUNCIONAL:
-  // El cliente no debe tener ninguna ruta de acceso visual o funcional para
-  // publicar servicios dentro de esta sección.
-  // ==========================================================================
+  // Asegurar que el rol sea provider al entrar a esta vista
   useEffect(() => {
     if (activeRole !== "provider") {
-      // Bloquear acceso al cliente y redirigir inmediatamente al feed cliente
-      router.replace("/feed/client");
+      setActiveRole("provider");
     }
-  }, [activeRole, router]);
+  }, [activeRole, setActiveRole]);
 
+  // Formulario en blanco para que el usuario escriba sus propios datos
   const [formData, setFormData] = useState({
-    name: user?.name ?? "Valentina Arias",
-    title: "",
-    description: "",
-    location: user?.location ?? "Cali, Granada",
-    price: "35000",
+    location: "",
+    about: "",
+    offer: "",
+    price: "",
   });
 
-  const [selectedTags, setSelectedTags] = useState<string[]>([
-    "Conversar",
-    "Escucha activa",
-  ]);
-  const [imagePreview, setImagePreview] = useState<string>("/mock/valentina.png");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const toggleTag = (tag: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
-    );
+    setSelectedTags((prev) => {
+      if (prev.includes(tag)) {
+        return prev.filter((t) => t !== tag);
+      }
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, tag];
+    });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImagePreview(event.target.result as string);
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
+
+    if (!formData.location.trim()) {
+      setErrorMessage("Por favor ingresa la ciudad y zona.");
+      return;
+    }
+    if (!formData.about.trim()) {
+      setErrorMessage("Por favor escribe una descripción sobre ti.");
+      return;
+    }
+    if (!formData.offer.trim()) {
+      setErrorMessage("Por favor escribe qué servicio vas a ofrecer.");
+      return;
+    }
+    if (selectedTags.length === 0) {
+      setErrorMessage("Selecciona al menos una categoría.");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    const newPost: Post = {
-      id: `p_${Date.now()}`,
-      user_id: user?.id ?? "u2",
-      name: formData.name || (user?.name ?? "Valentina Arias"),
-      description: formData.description,
-      tags: selectedTags.length > 0 ? selectedTags : ["Conversar"],
-      location: formData.location,
+    const cleanPrice = formData.price.trim();
+    const priceNum = Number(cleanPrice.replace(/\D/g, "")) || 5000;
+    const authorId = user?.id ?? "u2";
+    const authorName = user?.name ?? "Valentina Arias";
+    const authorAge = user?.age ? `${user.age} años` : "24 años";
+
+    // Crear la publicación con los datos exactamente escritos por el usuario
+    const newPost = addPost({
+      user_id: authorId,
+      name: authorName,
+      description: formData.about.trim(),
+      offer: formData.offer.trim(),
+      tags: selectedTags,
+      location: formData.location.trim(),
       latitude: 3.4516,
       longitude: -76.532,
-      post_image: imagePreview,
-      created_at: new Date().toISOString(),
-    };
+      post_image: imagePreview || "/mock/valentina.png",
+      price: priceNum,
+      age: authorAge,
+      rating: 4.7,
+      published_ago: "Publicado hace un momento",
+    });
 
-    // Agregar la publicación al listado simulado
-    POSTS.unshift(newPost);
+    setIsSubmitting(false);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      // Redirigir al feed del proveedor para ver su nueva publicación
-      router.push("/feed/provider");
-    }, 400);
+    // Redirige directamente al detalle de la publicación recién creada
+    // para mostrar de inmediato la información exacta que se escribió
+    router.push(`/post/${newPost.id}?created=true`);
   };
 
-  if (activeRole !== "provider") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#161615] p-6 text-center text-white">
-        <p className="text-sm text-[#8A8A8A]">
-          Acceso restringido. Redirigiendo al feed cliente...
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#D3FC31] selection:text-black">
+    <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#FF5E1B] selection:text-black">
       {/* 
         =======================================================================
-        BARRA SUPERIOR CON BOTÓN VOLVER Y TÍTULO
+        BARRA SUPERIOR CON BOTÓN VOLVER Y TÍTULO: '< Crear un truek'
         =======================================================================
       */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#242423] bg-[#161615] px-4">
         <button
           type="button"
           onClick={() => router.push("/feed/provider")}
-          className="flex size-9 items-center justify-center rounded-full bg-[#D3FC31] text-black shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
-          aria-label="Volver al Feed"
+          className="-ml-2 flex size-10 items-center justify-center text-white transition-opacity active:opacity-60 cursor-pointer"
+          aria-label="Volver"
         >
-          <svg className="size-5 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
+          <ChevronLeftIcon className="size-5" strokeWidth={2.5} />
         </button>
 
         <h1 className="text-base font-bold text-white tracking-wide">
-          Nueva publicación
+          Crear un truek
         </h1>
 
-        <div className="size-9" />
+        <div className="size-10" />
       </header>
 
       {/* 
         =======================================================================
-        FORMULARIO DE PUBLICACIÓN DE SERVICIOS
+        FORMULARIO DE CREACIÓN DE PUBLICACIÓN
         =======================================================================
       */}
-      <main className="flex-1 px-4 py-5 pb-28">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {/* Subir foto de la experiencia */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-white">
-              Foto de la experiencia
-            </label>
-            <div
+      <main className="flex-1 px-5 py-5 pb-28">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {/* 1. Recuadro para agregar imagen */}
+          <div className="flex flex-col gap-1.5">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="group relative flex aspect-5/4 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-[#3A3A39] bg-[#1B1B1B] transition-colors hover:border-[#D3FC31]"
+              className="group relative flex aspect-[16/10] w-full flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-[#3A3A39] bg-[#1F1F1E] transition-all hover:border-[#FF5E1B] cursor-pointer"
             >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imagePreview}
-                alt="Vista previa"
-                className="h-full w-full object-cover"
-              />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
-                <span className="rounded-full bg-[#D3FC31] px-4 py-1.5 text-xs font-bold text-black shadow-md">
-                  Cambiar foto
-                </span>
-              </div>
-            </div>
+              {imagePreview ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imagePreview}
+                    alt="Vista previa de imagen"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="rounded-full bg-[#FF5E1B] px-3.5 py-1 text-xs font-bold text-black shadow-md">
+                      Cambiar imagen
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-[#8A8A8A]">
+                  <PhotoIcon className="size-10" />
+                  <span className="text-xs font-medium text-white/80">
+                    Agregar imagen
+                  </span>
+                </div>
+              )}
+            </button>
           </div>
 
-          {/* Nombre visible en la tarjeta */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="name" className="text-sm font-medium text-white">
-              Tu nombre o alias
+          {/* 2. Ciudad y zona */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
+              Ciudad y zona
             </label>
             <input
-              id="name"
+              id="location"
               type="text"
               required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="h-12 w-full rounded-[14px] bg-[#242423] px-4 text-sm text-white outline-none focus:ring-1.5 focus:ring-[#D3FC31]"
-              placeholder="Ej: Valentina Arias"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              placeholder="¿Dónde ofreces?"
+              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
             />
           </div>
 
-          {/* Descripción del servicio */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="description" className="text-sm font-medium text-white">
-              ¿Qué te gustaría ofrecer o hacer?
+          {/* 3. Sobre mí */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="about" className="text-xs font-medium text-[#8A8A8A]">
+              Sobre mí
+            </label>
+            <input
+              id="about"
+              type="text"
+              required
+              value={formData.about}
+              onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+              placeholder="Escribe sobre ti..."
+              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+            />
+          </div>
+
+          {/* 4. ¿Qué vas a ofrecer? */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="offer" className="text-xs font-medium text-[#8A8A8A]">
+              ¿Qué vas a ofrecer?
             </label>
             <textarea
-              id="description"
-              rows={3}
+              id="offer"
+              rows={2}
               required
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-[14px] bg-[#242423] p-4 text-sm text-white outline-none resize-none focus:ring-1.5 focus:ring-[#D3FC31]"
-              placeholder="Ej: Me gusta salir a comer, conversar y jugar bolos..."
+              value={formData.offer}
+              onChange={(e) => setFormData({ ...formData, offer: e.target.value })}
+              placeholder="Escribe qué ofreces"
+              className="w-full rounded-[12px] bg-[#242423] p-3 text-sm text-white placeholder:text-[#5F5F5F] outline-none resize-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
             />
           </div>
 
-          {/* Etiquetas / Categorías */}
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-white">
-              Etiquetas del servicio
-            </label>
-            <div className="flex flex-wrap gap-2">
+          {/* 5. Categoría del servicio */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-[#8A8A8A]">
+                Categoría del servicio
+              </label>
+              <span className="text-[11px] text-[#5F5F5F]">
+                Elige hasta 3 categorías
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {TAGS.map((tag) => {
                 const isSelected = selectedTags.includes(tag);
                 return (
@@ -197,9 +248,9 @@ export default function CreatePostPage() {
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`rounded-full px-3.5 py-1 text-xs font-medium transition-all cursor-pointer ${
+                    className={`rounded-full px-3 py-1 text-xs font-medium transition-all cursor-pointer ${
                       isSelected
-                        ? "border border-[#D3FC31] bg-[#D3FC31] text-black font-bold"
+                        ? "border border-[#FF5E1B] bg-[#FF5E1B] text-black font-bold"
                         : "border border-[#383838] bg-black text-[#9CA3AF] hover:text-white"
                     }`}
                   >
@@ -210,29 +261,33 @@ export default function CreatePostPage() {
             </div>
           </div>
 
-          {/* Ubicación */}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="location" className="text-sm font-medium text-white">
-              Ubicación o zona
+          {/* 6. ¿Cuánto cobrarás por hora? */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="price" className="text-xs font-medium text-[#8A8A8A]">
+              ¿Cuánto cobrarás por hora?
             </label>
             <input
-              id="location"
+              id="price"
               type="text"
               required
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              className="h-12 w-full rounded-[14px] bg-[#242423] px-4 text-sm text-white outline-none focus:ring-1.5 focus:ring-[#D3FC31]"
-              placeholder="Ej: Cali, ciudad pacifica"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              placeholder="Mín. 100 - Máx 50.000"
+              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
             />
           </div>
 
-          {/* Botón de Publicar */}
+          {errorMessage && (
+            <p className="text-xs font-medium text-red-400">{errorMessage}</p>
+          )}
+
+          {/* Botón Crear */}
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-4 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#D3FC31] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#cbf127] active:scale-95 disabled:opacity-50"
+            className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#FF5E1B] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#fa530f] active:scale-95 disabled:opacity-50"
           >
-            {isSubmitting ? "Publicando..." : "Publicar servicio"}
+            {isSubmitting ? "Creando..." : "Crear"}
           </button>
         </form>
       </main>
