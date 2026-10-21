@@ -4,16 +4,15 @@ import type { ComponentType, ReactNode } from "react";
 import { SessionProvider } from "./SessionContext";
 import { NotificationsProvider } from "./NotificationsContext";
 import { RequestsProvider } from "./RequestContext";
+import { PostsProvider } from "./PostsContext";
 
 type ProviderComponent = ComponentType<{ children: ReactNode }>;
 
-// Every context Provider of the app is registered HERE, in one place.
-// To add yours: import it at the top and add ONE line inside your own section.
+// Registro centralizado de Providers en TrueK
 const providers: ProviderComponent[] = [
-  // --- Shared with all persons ---
   SessionProvider,
   // --- Person 1 ---
-
+  PostsProvider, 
   // --- Person 2 ---
   NotificationsProvider,
   RequestsProvider,

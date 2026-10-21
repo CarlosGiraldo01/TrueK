@@ -47,7 +47,7 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
       <h2 className="mt-8 text-lg font-bold leading-snug text-white"> ¿Qué tal ha sido tu experiencia con {provider?.name ?? "el prestador"}?</h2>
 
       <p className="mb-2 mt-6 text-sm text-white">Nivel de satisfacción</p>
-      <div className="flex h-11 items-center rounded-xl bg-truek-field px-3.5">
+      <div className="flex h-11 items-center rounded-xl border border-truek-line bg-truek-black px-3.5">
         <StarRating value={stars} onChange={setStars} size={26} />
       </div>
 
@@ -81,3 +81,4 @@ export default function RatingPage({ params }: { params: Promise<{ requestId: st
     </div>
   );
 }
+

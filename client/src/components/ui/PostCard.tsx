@@ -1,39 +1,63 @@
+"use client";
+
 import { StarRating } from "./StarRating";
 import { cn } from "./cn";
 
 interface PostCardProps {
+  /** Variante de presentación: 'card' para listados en feed y búsqueda, o 'detail' para vista completa */
   variant?: "card" | "detail";
+  /** URL o Base64 de la imagen de portada de la experiencia */
   imageUrl: string;
+  /** Nombre del autor o prestador del servicio */
   name: string;
+  /** Lista de etiquetas o categorías asociadas */
   tags: string[];
+  /** Calificación promedio en escala de 1 a 5 */
   rating: number;
+  /** Ubicación o zona de prestación del servicio */
   location: string;
+  /** Descripción personal o resumen de la experiencia */
   about: string;
+  /** Edad del autor (opcional) */
   age?: string;
+  /** Tiempo transcurrido desde la publicación (ej. 'Publicado hace 2 horas') */
   publishedAgo?: string;
+  /** Detalle ampliado de la oferta o intercambio */
   offer?: string;
+  /** Callback al accionar el enlace 'Ver más' */
   onSeeMore?: () => void;
+  /** Texto del botón o enlace de acción (por defecto 'Ver más') */
   seeMoreLabel?: string;
+  /** Clases CSS adicionales */
   className?: string;
 }
 
+/**
+ * Subcomponente para renderizar las píldoras de categorías temáticas.
+ */
 function Tags({ tags }: { tags: string[] }) {
   return (
     <ul className="flex flex-wrap gap-2">
       {tags.map((tag) => (
-        <li key=
-        {tag} 
-          className="whitespace-nowrap rounded-full border border-truek-line bg-black px-3.5 py-0.5 text-[11px] leading-3.5 text-white">
-        {tag}
+        <li
+          key={tag}
+          className="whitespace-nowrap rounded-full border border-[#2E2E2E] bg-black px-3.5 py-1 text-xs font-normal leading-tight text-white"
+        >
+          {tag}
         </li>
       ))}
     </ul>
   );
 }
 
+/**
+ * Componente de tarjeta de publicación:
+ * Muestra el contenido del truek en el feed principal o en los resultados de búsqueda,
+ * adaptándose a pantallas móviles y de escritorio.
+ */
 export function PostCard({
   variant = "card",
-imageUrl,
+  imageUrl,
   name,
   tags,
   rating,
@@ -48,14 +72,14 @@ imageUrl,
 }: PostCardProps) {
   if (variant === "detail") {
     return (
-      <article className={cn("w-full select-none px-10 text-white", className)}>
-        <div className="mb-4 aspect-5/4 w-full overflow-hidden rounded-[20px] bg-truek-surface">
-          {/*eslint-disable-next-line @next/next/no-img-element */}
+      <article className={cn("w-full select-none px-6 text-white", className)}>
+        <div className="mb-4 aspect-5/4 w-full overflow-hidden rounded-[20px] bg-[#1E1E1E]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={imageUrl} alt={name} className="h-full w-full object-cover object-center" />
         </div>
 
         <div className="mb-2 flex items-baseline justify-between gap-3">
-          <h2 className="text-lg font-bold">{name}</h2>
+          <h2 className="text-xl font-bold">{name}</h2>
           {publishedAgo && <span className="shrink-0 text-xs text-white/50">{publishedAgo}</span>}
         </div>
         {age && <p className="mb-3 text-sm font-semibold text-white/70">{age}</p>}
@@ -81,25 +105,43 @@ imageUrl,
   return (
     <article
       className={cn(
-        "w-full select-none rounded-[22px] border border-truek-line bg-truek-surface p-5 text-white",
+        "w-full select-none rounded-[24px] border border-[#2E2E2E] bg-[#1B1B1B] p-4 text-white shadow-md transition-all duration-200 hover:border-[#3E3E3E]",
         className,
       )}
     >
-      <div className="mb-3 aspect-5/4 w-full overflow-hidden rounded-[18px] bg-truek-black">
+      {/* Contenedor de imagen principal con esquinas redondeadas */}
+      <div className="mb-3.5 aspect-5/4 w-full overflow-hidden rounded-[18px] bg-black">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt={name} className="h-full w-full object-cover object-center" />
+        <img
+          src={imageUrl}
+          alt={name}
+          className="h-full w-full object-cover object-center"
+          loading="lazy"
+        />
       </div>
-      <h2 className="mb-3 text-base font-bold">{name}</h2>
-      <p className="mb-3 text-sm font-medium text-white/80">{about}</p>
-      <div className="mb-3"><Tags tags={tags} /></div>
-      <div className="mb-2.5 flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-sm text-white/70">{location}</span>
-        <StarRating value={rating} size={16} />
+
+      {/* Nombre del usuario autor */}
+      <h2 className="mb-2 text-base font-bold text-white">{name}</h2>
+
+      {/* Descripción corta / Sobre mí */}
+      <p className="mb-3 text-sm font-normal leading-snug text-white/80">{about}</p>
+
+      {/* Etiquetas / Tags de categorías */}
+      <div className="mb-3">
+        <Tags tags={tags} />
       </div>
+
+      {/* Fila: Ubicación a la izquierda, Calificación en estrellas a la derecha */}
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-sm text-[#9CA3AF]">{location}</span>
+        <StarRating value={rating} size={15} />
+      </div>
+
+      {/* Enlace 'Ver más' con estilo subrayado lima */}
       <button
         type="button"
         onClick={onSeeMore}
-        className="border-b-2 border-truek-lime pb-0.5 text-sm font-bold text-truek-lime focus:outline-none"
+        className="text-sm font-bold text-[#D3FC31] underline decoration-[#D3FC31] underline-offset-4 transition-opacity hover:opacity-80 active:opacity-60 focus:outline-none cursor-pointer"
       >
         {seeMoreLabel}
       </button>

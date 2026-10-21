@@ -1,22 +1,25 @@
 "use client";
 
+import { useSession } from "@/context/SessionContext";
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, PencilIcon } from "@heroicons/react/24/solid";
 import { NavBar, TopHeader } from "@/components/ui";
-import { CURRENT_USER_ID, getRequestById } from "@/lib/mock";
+import { getRequestById } from "@/lib/mock";
 import { formatPrice } from "../formatPrice";
 import { PaymentNotFound } from "../PaymentNotFound";
 import { SwipeToPay } from "./SwipeToPay";
 
 const PaymentScreen = ({ requestId } : { requestId: string }) => {
   const router = useRouter();
+  // The logged user comes from the session (not a fixed id)
+  const currentUserId = useSession().user?.id;
   const request = getRequestById(requestId);
   const [price, setPrice] = useState(request?.price ?? 0);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
-  if (!request || request.client_id !== CURRENT_USER_ID) return <PaymentNotFound />;
+  if (!request || request.client_id !== currentUserId) return <PaymentNotFound />;
 
   const startEditing = () => {
     setDraft(String(price));

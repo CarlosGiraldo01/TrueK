@@ -1,19 +1,22 @@
 "use client";
 
+import { useSession } from "@/context/SessionContext";
 import { use } from "react";
 import { NavBar, TopHeader } from "@/components/ui";
 import { ChatProvider } from "@/context/ChatContext";
-import { CURRENT_USER_ID, getPostById, getRequestById, getUserById } from "@/lib/mock";
+import { getPostById, getRequestById, getUserById } from "@/lib/mock";
 import { ChatHeader } from "./ChatHeader";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 
 const ChatScreen = ({ requestId }: { requestId: string }) => {
+  // The logged user comes from the session (not a fixed id)
+  const currentUserId = useSession().user?.id;
   const request = getRequestById(requestId);
   const post = request ? getPostById(request.post_id) : undefined;
     // Only the client and the provider of the service can see his chat
   const isParticipant =
-    !!request && !!post && (CURRENT_USER_ID === request.client_id || CURRENT_USER_ID === post.user_id);
+    !!request && !!post && (currentUserId === request.client_id || currentUserId === post.user_id);
 
   if (!request || !post || !isParticipant) {
     return (
@@ -25,7 +28,7 @@ const ChatScreen = ({ requestId }: { requestId: string }) => {
     );
   }
   // The other person is the user with the other rol (client-provider, provider-client)
-  const otherId = CURRENT_USER_ID === request.client_id ? post.user_id : request.client_id;
+  const otherId = currentUserId === request.client_id ? post.user_id : request.client_id;
   const other = getUserById(otherId);
 
   return (
@@ -37,7 +40,7 @@ const ChatScreen = ({ requestId }: { requestId: string }) => {
             name={other?.name ?? "Usuario"}
             picture={other?.profile_picture ?? undefined}
           />
-          <MessageList currentUserId={CURRENT_USER_ID} clientId={request.client_id} />
+          <MessageList currentUserId={currentUserId} clientId={request.client_id} />
           <MessageInput />
         </div>
       </div>

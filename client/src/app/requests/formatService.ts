@@ -1,4 +1,4 @@
-import { SERVICE_REQUESTS } from "@/lib/mock";
+import { SERVICE_REQUESTS, getPostById } from "@/lib/mock";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -28,6 +28,11 @@ export function formatHours(hours: number) {
 
 // Esta función averigua cuánto cuesta UNA hora de un servicio.
 export function getHourlyRate(postId: string) {
+  // Si la publicación ya tiene precio (lo pone "Crea un truek"), usamos ese
+  const post = getPostById(postId);
+  if (post?.price) return post.price;
+
+  // Si no, lo sacamos de una solicitud de esa publicación
   const sample = SERVICE_REQUESTS.find((r) => r.post_id === postId && r.hours > 0);
   return sample ? Math.round(sample.price / sample.hours) : 10000;
 }

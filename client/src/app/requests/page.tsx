@@ -1,11 +1,12 @@
-
-//pagina principal de servicios 
+//pagina principal de servicios
 //Es la puerta de entrada a todo el flujo: pedir, aceptar, servicio activo, terminar, calificar y pagar.
 "use client";
 
 import Link from "next/link";
-import { NavBar, TopHeader } from "@/components/ui";
-import { useRequests } from "../../context/RequestContext";
+import { useRouter } from "next/navigation";
+import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
+import { Button, NavBar, TopHeader } from "@/components/ui";
+import { useRequests } from "@/context/RequestContext";
 import { useSession } from "@/context/SessionContext";
 import { getPostById, getUserById } from "@/lib/mock";
 import { RequestCard } from "./RequestCard";
@@ -13,11 +14,21 @@ import { RequestCard } from "./RequestCard";
 // La pestaña "Servicios".
 // No muestra una lista: muestra solo el servicio que tienes AHORA MISMO.
 export default function RequestsPage() {
-  //
   const { user } = useSession();
-  const { currentRequest, getRole } = useRequests();
+  const router = useRouter();
+  const { currentRequest, getRole, finishRequest } = useRequests();
   const post = currentRequest ? getPostById(currentRequest.post_id) : undefined;
   const role = currentRequest ? getRole(currentRequest) : null;
+
+  // La bolita del chat solo aparece cuando el servicio fue aceptado
+  const showChat = currentRequest?.status === "accepted" || currentRequest?.status === "active";
+
+  // El cliente termina el servicio: primero califica y después paga
+  const handleFinish = () => {
+    if (!currentRequest) return;
+    finishRequest(currentRequest.id);
+    router.push(`/requests/${currentRequest.id}/rating`);
+  };
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -25,9 +36,21 @@ export default function RequestsPage() {
 
       <main className="flex-1 px-5 pt-6">
         {currentRequest && post && role ? (
-          <><RequestCard request={currentRequest} post={post} role={role} person={getUserById(role === "client" ? post.user_id : currentRequest.client_id)}
+          <>
+            <RequestCard
+              request={currentRequest}
+              post={post}
+              role={role}
+              person={getUserById(role === "client" ? post.user_id : currentRequest.client_id)}
             />
             <p className="mt-4 text-center text-xs text-truek-placeholder">Toca la tarjeta para ver el detalle</p>
+
+            {/* Solo el cliente ve este botón cuando el servicio fue aceptado */}
+            {showChat && role === "client" && (
+              <div className="mx-auto mt-8 w-full max-w-60">
+                <Button onClick={handleFinish}>Finalizar</Button>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center gap-4 pt-4 text-center">
@@ -41,8 +64,20 @@ export default function RequestsPage() {
         )}
       </main>
 
+      {/* Bolita del chat: lleva directo al chat del servicio (pantalla de Carlos) */}
+      {showChat && currentRequest && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-30 z-40 mx-auto flex w-full max-w-110 justify-end px-5">
+          <Link
+            href={`/chat/${currentRequest.id}`}
+            aria-label="Abrir chat"
+            className="pointer-events-auto flex size-14 items-center justify-center rounded-full bg-truek-lime text-truek-black shadow-lg"
+          >
+            <ChatBubbleLeftEllipsisIcon className="size-8" strokeWidth={2} />
+          </Link>
+        </div>
+      )}
+
       <NavBar activeId="servicios" />
     </div>
   );
 }
-
