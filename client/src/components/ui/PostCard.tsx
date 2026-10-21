@@ -2,21 +2,37 @@ import { StarRating } from "./StarRating";
 import { cn } from "./cn";
 
 interface PostCardProps {
+  /** Variante de presentación: 'card' para listados en feed y búsqueda, o 'detail' para vista completa */
   variant?: "card" | "detail";
+  /** URL o Base64 de la imagen de portada de la experiencia */
   imageUrl: string;
+  /** Nombre del autor o prestador del servicio */
   name: string;
+  /** Lista de etiquetas o categorías asociadas */
   tags: string[];
+  /** Calificación promedio en escala de 1 a 5 */
   rating: number;
+  /** Ubicación o zona de prestación del servicio */
   location: string;
+  /** Descripción personal o resumen de la experiencia */
   about: string;
+  /** Edad del autor (opcional) */
   age?: string;
+  /** Tiempo transcurrido desde la publicación (ej. 'Publicado hace 2 horas') */
   publishedAgo?: string;
+  /** Detalle ampliado de la oferta o intercambio */
   offer?: string;
+  /** Callback al accionar el enlace 'Ver más' */
   onSeeMore?: () => void;
+  /** Texto del botón o enlace de acción (por defecto 'Ver más') */
   seeMoreLabel?: string;
+  /** Clases CSS adicionales */
   className?: string;
 }
 
+/**
+ * Subcomponente para renderizar las píldoras de categorías temáticas.
+ */
 function Tags({ tags }: { tags: string[] }) {
   return (
     <ul className="flex flex-wrap gap-2">
@@ -31,6 +47,11 @@ function Tags({ tags }: { tags: string[] }) {
   );
 }
 
+/**
+ * Componente de tarjeta de publicación:
+ * Muestra el contenido del truek en el feed principal o en los resultados de búsqueda,
+ * adaptándose a pantallas móviles y de escritorio.
+ */
 export function PostCard({
   variant = "card",
 imageUrl,
