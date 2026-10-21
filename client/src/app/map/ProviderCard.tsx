@@ -32,7 +32,7 @@ export function ProviderCard({ post, provider }: ProviderCardProps) {
       <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-white/80">{post.description}</p>
 
       <Link
-        href={`/publication/${post.id}`}
+        href={`/post/${post.id}`}
         className="mt-4 block rounded-xl bg-truek-lime py-2.5 text-center text-sm font-semibold text-truek-black active:opacity-80"
       >
         Ver publicación

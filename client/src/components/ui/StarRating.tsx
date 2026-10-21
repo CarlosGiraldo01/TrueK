@@ -1,3 +1,5 @@
+"use client";
+
 import { StarIcon } from "@heroicons/react/24/solid";
 import { cn } from "./cn";
 
@@ -12,7 +14,7 @@ interface StarRatingProps {
 export function StarRating({
   value,
   onChange,
-  size = 18,
+  size = 16,
   showValue = false,
   className,
 }: StarRatingProps) {
@@ -21,12 +23,13 @@ export function StarRating({
 
   return (
     <div className={cn("flex items-center", className)}>
-      <div className="flex items-center" style={{ gap: Math.round(size * 0.22) }}>
+      <div className="flex items-center" style={{ gap: Math.round(size * 0.2) }}>
         {[1, 2, 3, 4, 5].map((n) => {
           const star = (
             <StarIcon
+              key={n}
               style={{ width: size, height: size }}
-              className={n <= filled ? "text-truek-lime" : "text-truek-black"}
+              className={n <= filled ? "text-[#D3FC31]" : "text-[#363636]"}
             />
           );
           return interactive ? (
@@ -34,8 +37,8 @@ export function StarRating({
               key={n}
               type="button"
               onClick={() => onChange(n)}
-              aria-label={`${n} ${n === 1 ? "star" : "stars"}`}
-              className="transition-transform active:scale-90 focus:outline-none"
+              aria-label={`${n} ${n === 1 ? "estrella" : "estrellas"}`}
+              className="transition-transform active:scale-90 focus:outline-none cursor-pointer"
             >
               {star}
             </button>
@@ -45,7 +48,7 @@ export function StarRating({
         })}
       </div>
       {showValue && !interactive && (
-        <span className="ml-2 text-xs text-truek-white/70">{value.toFixed(1)}</span>
+        <span className="ml-2 text-xs text-white/70">{value.toFixed(1)}</span>
       )}
     </div>
   );

@@ -1,17 +1,20 @@
 "use client";
 
+import { useSession } from "@/context/SessionContext";
 import { use } from "react";
 import { Avatar, NavBar, TopHeader } from "@/components/ui";
-import { CURRENT_USER_ID, getPostById, getRequestById, getUserById } from "@/lib/mock";
+import { getPostById, getRequestById, getUserById } from "@/lib/mock";
 import { formatPrice } from "../../formatPrice";
 import { PaymentNotFound } from "../../PaymentNotFound";
 import { PaymentResult } from "../../PaymentResult";
 
 const PaymentReceivedScreen = ({ requestId }: { requestId: string }) => {
+  // The logged user comes from the session (not a fixed id)
+  const currentUserId = useSession().user?.id;
   const request = getRequestById(requestId);
   const post = request ? getPostById(request.post_id) : undefined;
 
-  if (!request || !post || post.user_id !== CURRENT_USER_ID) return <PaymentNotFound />;
+  if (!request || !post || post.user_id !== currentUserId) return <PaymentNotFound />;
 
   const client = getUserById(request.client_id);
   const clientName = client?.name ?? "Usuario";
