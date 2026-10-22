@@ -10,7 +10,8 @@ This delivery focuses on the **visual layer only**: all screens, with simulated 
 - **Tailwind CSS v4** for styling
 - **Heroicons** (`@heroicons/react`) for icons
 - **Leaflet** (`leaflet` + `react-leaflet`) for the map, with OpenStreetMap tiles (no API key needed)
-- **Express** + TypeScript for the backend (skeleton only for now)
+- **Express** + TypeScript for the backend (GET endpoints with simulated data)
+- **Axios** for the client's calls to the server
 
 ## Getting started
 
@@ -27,7 +28,7 @@ To preview it as a phone, use F12 and then Ctrl+Shift+M. The app is drawn in a p
 
 Before pushing anything, run `npm run lint`.
 
-The backend is only a skeleton for now. To check it runs:
+The client gets all its data from the server, so start the server first (in its own terminal) and then the client:
 
 ```bash
 cd server
@@ -37,6 +38,14 @@ npm run dev
 ```
 
 Then open `http://localhost:4000/health`; it should show `{"ok":true}`. On Windows PowerShell, use `Copy-Item .env.example .env` instead of `cp`.
+
+In the client, create the file `client/.env.local` (copy `client/.env.example`) so it knows where the server is:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+Restart `npm run dev` in the client after creating or changing it.
 
 ## Design tokens
 
@@ -51,15 +60,16 @@ TrueK/
 │       ├── app/            # Screens: one folder per route, with a page.tsx
 │       ├── components/
 │       │   └── ui/         # Shared components
-│       ├── context/        # React contexts and Providers.tsx
-│       └── lib/
-│           └── mock/       # Shared simulated data and types
+│       ├── context/        # React contexts (the only place that calls the server with Axios)
+│       ├── lib/api.ts      # Axios instance
+│       └── types/          # Types of the data the server returns
 └── server/
     └── src/
         ├── config/         # Environment variables
         ├── db/             # Database connection and SQL
         ├── middlewares/    # Auth, error handling
-        └── features/       # One folder per feature (auth, posts, chat...)
+        └── features/       # One folder per feature (users, posts, requests, ratings, messages, notifications)
+                            # each one: router, controller, service, repository, types and data.mock.ts
 ```
 
 A component used by only one screen lives next to that screen's `page.tsx`. A component used by several people goes in `components/ui/`.
@@ -150,7 +160,7 @@ These are the points where one cycle hands over to another. The names are so eve
 
 If the destination screen doesn't exist yet, leave the button pointing to its route and it will work once its owner finishes it.
 
-The payment screens (P3) use three routes: `/payment/[requestId]` (Pay, only the client of that request can see it), `/payment/[requestId]/success` (Payment successful) and `/payment/[requestId]/received` (Payment received, only the provider can see it). To see the last one, change `CURRENT_USER_ID` to the provider of the request (for `r2` it is `"u3"`) and go back to `"u1"` afterwards.
+The payment screens (P3) use three routes: `/payment/[requestId]` (Pay, only the client of that request can see it), `/payment/[requestId]/success` (Payment successful) and `/payment/[requestId]/received` (Payment received, only the provider can see it). To see the last one, log in as the provider of the request (for `r2` it is `u3`, Camila).
 
 ## Shared components
 
@@ -172,19 +182,31 @@ Each component's props are visible in its file. Texts, sizes and images change t
 
 ## Simulated data
 
-It lives in `client/src/lib/mock/` and mirrors the database columns (in `snake_case`):
+The simulated data lives in the **server**, inside each feature (`server/src/features/<feature>/data.mock.ts`), and mirrors the database columns (in `snake_case`). The client never imports it: it asks the server with Axios, and only from the contexts.
 
-| File | Contents |
+| Feature | Endpoints (GET only) | Contents |
+|---|---|---|
+| `users` | `/users`, `/users/:id` | 3 users (u1, u2, u3) |
+| `posts` | `/posts`, `/posts/:id`, `/posts/tags` | 3 publications and the 7 tags |
+| `requests` | `/requests`, `/requests/:id` | 8 requests, one for each status |
+| `ratings` | `/ratings`, `/ratings/:id` | 3 ratings |
+| `messages` | `/messages`, `/messages?service_request_id=r7`, `/messages/:id` | 11 chat messages |
+| `notifications` | `/notifications`, `/notifications/:id` | 4 notifications, one for each type |
+
+Each feature has the 4 layers: `router` → `controller` → `service` → `repository` (which reads `data.mock.ts`).
+
+In the client, the contexts load the data when the app opens and share it with the screens:
+
+| Context | What it gives you |
 |---|---|
-| `users.ts` | 4 users (1 client and 3 providers, with profile pictures) and `CURRENT_USER_ID` |
-| `posts.ts` | 3 publications and the 7 tags |
-| `requests.ts` | 8 requests, one for each status |
-| `ratings.ts` | 3 ratings |
-| `messages.ts` | 11 chat messages, for requests `r1`, `r2`, `r4` and `r7` |
-| `notifications.ts` | 4 notifications, one for each type |
-| `types.ts` | The TypeScript types for all of the above |
+| `UsersContext` | `users`, `getUserById`, `updateUser` |
+| `PostsContext` | `posts`, `tags`, `addPost`, `getPostById`, `searchPosts`... |
+| `RequestsContext` | `requests`, `getRequest`, `getUserRating`, `getHourlyRate`, create/accept/rate... |
+| `ChatContext` | `messages` of one request and `createMessage` |
 
-`lib/mock/index.ts` exports them together with the helpers `getUserById`, `getPostById`, `getUserRating`, `getRequestById` and `getMessagesByRequest`.
+All of them also expose `loading` and `error`. `DataGate` (inside `Providers.tsx`) shows "Cargando..." or an error until the server answers, so the screens never look for data that has not arrived. The types live in `client/src/types/` (same as the server's).
+
+The server only answers GET. Creating a post, a request, a message or a rating still lives in the context's memory (as before).
 
 ### Session
 
@@ -194,4 +216,4 @@ It lives in `client/src/lib/mock/` and mirrors the database columns (in `snake_c
 const { user } = useSession();
 ```
 
-It starts as `CURRENT_USER_ID` (`u1`, a client). To test the provider view, change it to `"u2"` in `lib/mock/users.ts`.
+It starts as `u2` (Valentina, a provider; `DEFAULT_USER_ID` in `SessionContext.tsx`). Use the role switch or `login(id)` to test the client view.
