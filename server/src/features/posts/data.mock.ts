@@ -1,6 +1,6 @@
-import type { Post } from "./types";
+import type { Post } from "./posts.types";
 
-export const TAGS = [
+export const tagsMock = [
   "Escucha activa",
   "Conversar",
   "Salir",
@@ -10,7 +10,7 @@ export const TAGS = [
   "Tutoría",
 ];
 
-export const POSTS: Post[] = [
+export const postsMock: Post[] = [
   {
     id: "p1",
     user_id: "u2",

@@ -1,6 +1,6 @@
-import type { ServiceRequest } from "./types";
+import type { ServiceRequest } from "./requests.types";
 
-export const SERVICE_REQUESTS: ServiceRequest[] = [
+export const requestsMock: ServiceRequest[] = [
   {
     id: "r1",
     post_id: "p1",

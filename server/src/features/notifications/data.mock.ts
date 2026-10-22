@@ -1,6 +1,6 @@
-import type { Notification } from "./types";
+import type { Notification } from "./notifications.types";
 
-export const NOTIFICATIONS: Notification[] = [
+export const notificationsMock: Notification[] = [
   {
     id: "n1",
     user_id: "u1",

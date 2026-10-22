@@ -1,6 +1,6 @@
-import type { Rating } from "./types";
+import type { Rating } from "./ratings.types";
 
-export const RATINGS: Rating[] = [
+export const ratingsMock: Rating[] = [
   {
     id: "g1",
     service_request_id: "r1",

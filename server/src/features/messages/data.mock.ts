@@ -1,7 +1,7 @@
-import type { Message } from "./types";
+import type { Message } from "./messages.types";
 
 // "r7" is the main demo: u1 (client) talks with u3 (provider of post p2).
-export const MESSAGES: Message[] = [
+export const messagesMock: Message[] = [
   { id: "m1", service_request_id: "r7", sender_id: "u1", content: "Hola!", created_at: "2026-10-16T11:23:00-05:00" },
   { id: "m2", service_request_id: "r7", sender_id: "u1", content: "Cuánto sería por 1 hora?", created_at: "2026-10-16T11:23:30-05:00" },
   { id: "m3", service_request_id: "r7", sender_id: "u3", content: "Hola, cómo estás?\nPor hora el precio es de $15.000.", created_at: "2026-10-16T11:25:00-05:00" },

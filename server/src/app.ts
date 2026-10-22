@@ -1,8 +1,14 @@
 import cors from 'cors';
 import express from 'express';
 import { config } from './config';
+import { usersRouter } from './features/users/users.router';
+import { postsRouter } from './features/posts/posts.router';
+import { requestsRouter } from './features/requests/requests.router';
+import { ratingsRouter } from './features/ratings/ratings.router';
+import { messagesRouter } from './features/messages/messages.router';
+import { notificationsRouter } from './features/notifications/notifications.router';
 
-const app = express();
+export const app = express();
 
 app.use(cors({ origin: config.clientOrigin }));
 app.use(express.json());
@@ -11,6 +17,9 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 
-app.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
-});
+app.use('/users', usersRouter);
+app.use('/posts', postsRouter);
+app.use('/requests', requestsRouter);
+app.use('/ratings', ratingsRouter);
+app.use('/messages', messagesRouter);
+app.use('/notifications',  notificationsRouter);
