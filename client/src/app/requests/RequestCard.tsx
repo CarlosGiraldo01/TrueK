@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { RequestRole } from "../../context/RequestContext";
-import type { Post, ServiceRequest, User } from "@/lib/mock";
+import type { Post, ServiceRequest, User } from "@/types";
 import { cn } from "@/components/ui/cn";
 import { formatHours } from "./formatService";
 // Estos son los 3 colores que puede tener el puntito:

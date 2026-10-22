@@ -3,7 +3,8 @@
 import { use } from "react";
 import { NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "@/context/RequestContext";
-import { getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
 import { ActiveServiceView } from "./ActiveServiceView";
 import { ClientRequestView } from "./ClientRequetView";
 import { FinishedServiceView } from "./FinishedServiceview";
@@ -11,6 +12,8 @@ import { ProviderRequestView } from "./ProviderRequestView";
 
 const RequestDetail = ({ requestId }: { requestId: string }) => {
   const { getRequest, getRole } = useRequests();
+  const { getPostById } = usePosts();
+  const { getUserById } = useUsers();
   const request = getRequest(requestId);
   const post = request ? getPostById(request.post_id) : undefined;
   // Only the client and the provider of the request can see it.

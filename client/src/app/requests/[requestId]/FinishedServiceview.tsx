@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, StarRating } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
-import type { ServiceRequest, User } from "@/lib/mock";
+import type { ServiceRequest, User } from "@/types";
 import { ServiceDetailCard, StatusBadge } from "./ServiceDetailCard";
 
 interface Props {

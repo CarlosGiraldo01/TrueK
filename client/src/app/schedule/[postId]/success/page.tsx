@@ -7,7 +7,8 @@ import { ChevronRightIcon } from "@heroicons/react/24/outline";
 import { Button, NavBar, TopHeader } from "@/components/ui";
 import { ServiceBellIcon } from "@/components/icons/ServiceBellIcon";
 import { useRequests } from "../../../../context/RequestContext";
-import { getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
 import { PaymentResult } from "@/app/payment/PaymentResult";
 import { ScheduleProgress } from "../../ScheduleProgress";
 import { ServiceSummaryCard } from "../../ServiceSummaryCard";
@@ -15,6 +16,8 @@ import { ServiceSummaryCard } from "../../ServiceSummaryCard";
 export default function ServiceRequestedPage() {
   const router = useRouter();
   const { lastCreatedId, getRequest } = useRequests();
+  const { getPostById } = usePosts();
+  const { getUserById } = useUsers();
   const request = lastCreatedId ? getRequest(lastCreatedId) : undefined;
   const post = request ? getPostById(request.post_id) : undefined;
 

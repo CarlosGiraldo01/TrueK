@@ -5,7 +5,7 @@ import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, PencilIcon } from "@heroicons/react/24/solid";
 import { NavBar, TopHeader } from "@/components/ui";
-import { getRequestById } from "@/lib/mock";
+import { useRequests } from "@/context/RequestContext";
 import { formatPrice } from "../formatPrice";
 import { PaymentNotFound } from "../PaymentNotFound";
 import { SwipeToPay } from "./SwipeToPay";
@@ -14,7 +14,8 @@ const PaymentScreen = ({ requestId } : { requestId: string }) => {
   const router = useRouter();
   // The logged user comes from the session (not a fixed id)
   const currentUserId = useSession().user?.id;
-  const request = getRequestById(requestId);
+  const { getRequest } = useRequests();
+  const request = getRequest(requestId);
   const [price, setPrice] = useState(request?.price ?? 0);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");

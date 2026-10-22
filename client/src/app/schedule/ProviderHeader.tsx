@@ -1,6 +1,6 @@
 //Muestra quién va a hacer el trabajo: la foto del trabajador en un circulito, su nombre y unas etiquetas (pastillitas) con lo que sabe hacer, por ejemplo “Plomería” o “Pintura”.
 import { Avatar } from "@/components/ui";
-import type { User } from "@/lib/mock";
+import type { User } from "@/types";
 
 
 export function ProviderHeader({ provider, tags }: { provider: User | undefined; tags: string[] }) {

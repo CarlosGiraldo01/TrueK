@@ -1,11 +1,14 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
-import { CURRENT_USER_ID, getMessagesByRequest } from "@/lib/mock";
-import type { Message } from "@/lib/mock";
+import { createContext, useContext, useEffect, useState } from "react";
+import { api } from "@/lib/api";
+import { useSession } from "./SessionContext";
+import type { Message } from "@/types";
 
 interface ChatContextValue {
   messages: Message[];
+  loading: boolean;
+  error: string | null;
   createMessage: (content: string) => void;
 }
 
@@ -18,21 +21,45 @@ export const ChatProvider = ({
   requestId: string;
   children: React.ReactNode;
 }) => {
-  const [messages, setMessages] = useState<Message[]>(() => getMessagesByRequest(requestId));
+  const { user } = useSession();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pide al servidor los mensajes de esta solicitud.
+  useEffect(() => {
+    let cancelled = false;
+
+    api
+      .get<Message[]>("/messages", { params: { service_request_id: requestId } })
+      .then((res) => {
+        if (!cancelled) setMessages(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setError("No se pudieron cargar los mensajes");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [requestId]);
 
   // Simulated: in this moment the message only lives in memory.
   const createMessage = (content: string) => {
     const message: Message = {
       id: `m${Date.now()}`,
       service_request_id: requestId,
-      sender_id: CURRENT_USER_ID,
+      sender_id: user?.id ?? "",
       content,
       created_at: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, message]);
   };
   return (
-    <ChatContext.Provider value={{ messages, createMessage }}>{children}</ChatContext.Provider>
+    <ChatContext.Provider value={{ messages, loading, error, createMessage }}>{children}</ChatContext.Provider>
   );
 };
 

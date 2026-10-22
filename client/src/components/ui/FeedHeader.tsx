@@ -2,7 +2,7 @@
 
 import { Logo } from "@/components/ui/Logo";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import type { UserRole } from "@/lib/mock";
+import type { UserRole } from "@/types";
 
 interface FeedHeaderProps {
   /**

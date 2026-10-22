@@ -4,16 +4,20 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { Map as LeafletMap } from "leaflet";
 import { NavBar, TopHeader } from "@/components/ui";
-import { CURRENT_USER_ID, POSTS, getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useSession } from "@/context/SessionContext";
+import { useUsers } from "@/context/UsersContext";
 import { MapControls } from "./MapControls";
 import { ProviderCard } from "./ProviderCard";
 
 const NearbyMap = dynamic(() => import("./NearbyMap"), { ssr: false });
 
-// This hide the posts that belong to the person who is using the app, no make sense hire yourself 
-const OTHERS_POSTS = POSTS.filter((post) => post.user_id !== CURRENT_USER_ID);
-
 export default function MapPage() {
+  const { posts, getPostById } = usePosts();
+  const { getUserById } = useUsers();
+  const { user } = useSession();
+  // This hide the posts that belong to the person who is using the app, no make sense hire yourself
+  const othersPosts = posts.filter((post) => post.user_id !== user?.id);
   const [map, setMap] = useState<LeafletMap | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
@@ -25,7 +29,7 @@ export default function MapPage() {
       <TopHeader title="Mapa" hideBack />
       <div className="relative min-h-0 flex-1">
         <NearbyMap
-          posts={OTHERS_POSTS}
+          posts={othersPosts}
           selectedPostId={selectedPostId}
           onSelectPost={setSelectedPostId}
           onMapReady={setMap}

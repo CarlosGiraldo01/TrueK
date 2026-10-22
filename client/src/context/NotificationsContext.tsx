@@ -8,10 +8,10 @@ import {
   NotificationServiceFinished,
   NotificationServiceRequest,
 } from "@/components/ui";
-import type { NotificationType } from "@/lib/mock";
+import type { NotificationType } from "@/types";
 
 // What any screen sends to show a notification.
-// "type" uses the same names as the database (see lib/mock/types.ts).
+// "type" uses the same names as the database (see types/notifications.ts).
 export interface NotificationInput {
   type: NotificationType;
   name: string;

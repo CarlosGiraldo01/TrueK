@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ChevronLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
-import { TAGS } from "@/lib/mock";
 import { NavBar } from "@/components/ui/NavBar";
 
 /**
@@ -22,7 +21,7 @@ import { NavBar } from "@/components/ui/NavBar";
 export default function CreatePostPage() {
   const router = useRouter();
   const { user, activeRole, setActiveRole } = useSession();
-  const { addPost } = usePosts();
+  const { addPost, tags } = usePosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /**
@@ -299,7 +298,7 @@ export default function CreatePostPage() {
               </span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {TAGS.map((tag) => {
+              {tags.map((tag) => {
                 const isSelected = selectedTags.includes(tag);
                 return (
                   <button
