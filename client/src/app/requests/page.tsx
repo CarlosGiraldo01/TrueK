@@ -8,7 +8,8 @@ import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import { Button, NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "@/context/RequestContext";
 import { useSession } from "@/context/SessionContext";
-import { getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
 import { RequestCard } from "./RequestCard";
 
 // La pestaña "Servicios".
@@ -17,6 +18,8 @@ export default function RequestsPage() {
   const { user } = useSession();
   const router = useRouter();
   const { currentRequest, getRole, finishRequest } = useRequests();
+  const { getPostById } = usePosts();
+  const { getUserById } = useUsers();
   const post = currentRequest ? getPostById(currentRequest.post_id) : undefined;
   const role = currentRequest ? getRole(currentRequest) : null;
 

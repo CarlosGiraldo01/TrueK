@@ -4,20 +4,24 @@ import { useSession } from "@/context/SessionContext";
 import { use } from "react";
 import { NavBar, TopHeader } from "@/components/ui";
 import { ChatProvider } from "@/context/ChatContext";
-import { getPostById, getRequestById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useRequests } from "@/context/RequestContext";
+import { useUsers } from "@/context/UsersContext";
 import { ChatHeader } from "./ChatHeader";
 import { MessageInput } from "./MessageInput";
 import { MessageList } from "./MessageList";
 
 const ChatScreen = ({ requestId }: { requestId: string }) => {
   // The logged user comes from the session (not a fixed id)
-  const currentUserId = useSession().user?.id;
-  const request = getRequestById(requestId);
-  const post = request ? getPostById(request.post_id) : undefined;
+const currentUserId = useSession().user?.id;
+    const { getPostById } = usePosts();
+    const { getRequest } = useRequests();
+    const { getUserById } = useUsers();
+    const request = getRequest(requestId);
+    const post = request ? getPostById(request.post_id) : undefined;
     // Only the client and the provider of the service can see his chat
-  const isParticipant =
+    const isParticipant =
     !!request && !!post && (currentUserId === request.client_id || currentUserId === post.user_id);
-
   if (!request || !post || !isParticipant) {
     return (
       <div className="flex min-h-dvh flex-col">

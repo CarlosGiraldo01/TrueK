@@ -10,7 +10,7 @@ import { Logo } from "@/components/ui/Logo";
 import { PostCard } from "@/components/ui/PostCard";
 import { NavBar } from "@/components/ui/NavBar";
 import { usePosts } from "@/context/PostsContext";
-import { getUserRating, TAGS } from "@/lib/mock";
+import { useRequests } from "@/context/RequestContext";
 
 /**
  * Componente de la pantalla 'Buscar'.
@@ -23,7 +23,8 @@ import { getUserRating, TAGS } from "@/lib/mock";
  */
 export default function SearchPage() {
   const router = useRouter();
-  const { posts } = usePosts();
+  const { posts, tags } = usePosts();
+  const { getUserRating } = useRequests();
 
   // Texto ingresado en el buscador
   const [query, setQuery] = useState("");
@@ -126,7 +127,7 @@ export default function SearchPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {TAGS.map((tag) => {
+            {tags.map((tag) => {
               const isSelected = selectedTag === tag;
               return (
                 <button

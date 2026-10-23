@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { FeedHeader } from "@/components/ui/FeedHeader";
 import { PostCard } from "@/components/ui/PostCard";
 import { NavBar } from "@/components/ui/NavBar";
-import { getUserRating, type UserRole } from "@/lib/mock";
+import type { UserRole } from "@/types";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
+import { useRequests } from "@/context/RequestContext";
 
 interface FeedViewProps {
   /**
@@ -31,6 +32,7 @@ export function FeedView({ forcedRole }: FeedViewProps) {
   const router = useRouter();
   const { activeRole, setActiveRole } = useSession();
   const { posts } = usePosts();
+  const { getUserRating } = useRequests();
 
   // Rol efectivo a renderizar
   const currentRole: UserRole = forcedRole ?? activeRole;

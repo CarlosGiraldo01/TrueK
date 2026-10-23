@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui";
 //requestrole es el que define el rol de la persona 
 import { useRequests, type RequestRole } from "../../../context/RequestContext";
-import type { ServiceRequest, User } from "@/lib/mock";
+import type { ServiceRequest, User } from "@/types";
 //se trae la trajeta que muestralos datos del servicio
 import { ServiceDetailCard, StatusBadge } from "./ServiceDetailCard";
 //lista de lo que necesitamos

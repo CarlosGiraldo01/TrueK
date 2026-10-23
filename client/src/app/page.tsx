@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
-import type { UserRole } from "@/lib/mock/types";
+import type { UserRole } from "@/types";
 
 /**
  * ============================================================================

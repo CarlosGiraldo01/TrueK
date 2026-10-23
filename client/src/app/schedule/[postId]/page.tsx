@@ -5,7 +5,8 @@ import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, TextField, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
 import { useSession } from "@/context/SessionContext";
-import { getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
 import { formatTime } from "../../requests/formatService";
 import { ProviderHeader } from "../ProviderHeader";
 import { ScheduleProgress } from "../ScheduleProgress";
@@ -37,6 +38,8 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
       const router = useRouter();
       const { user } = useSession();// Abrimos la caja de la sesión y sacamos al usuario que entró a la app.
       const { draft, saveDraft } = useRequests();// - draft: el borrador que ya se había guardado (si hay uno).
+      const { getPostById } = usePosts();
+      const { getUserById } = useUsers();
       const post = getPostById(postId);
       const previous = draft?.post_id === postId ? draft : null;
       const [clientName, setClientName] = useState(previous?.client_name ?? user?.name ?? "");

@@ -114,7 +114,8 @@ client/src/
 ├─ app/<ruta>/page.tsx   → pantallas (crea solo las tuyas)
 ├─ components/ui/        → componentes compartidos (Button, NavBar, Logo...)
 ├─ context/              → contexts y Providers.tsx
-└─ lib/mock/             → datos simulados compartidos
+├─ lib/api.ts            → Axios (una sola instancia)
+└─ types/                → tipos de los datos que devuelve el servidor
 ```
 
 ### Pantallas
@@ -202,10 +203,13 @@ No se edita sin avisar: `layout.tsx`, `globals.css`, `package.json` y todo `comp
 
 ## Datos simulados y contexts
 
-- Los datos de mentira viven en `client/src/lib/mock/`, **uno por tema** (`users.ts`, `posts.ts`...). Son los mismos para las tres, para que cada usuario y publicación sea consistente en todas las pantallas.
-- Cada una crea sus propios contexts en `src/context/` para el estado de sus pantallas (por ejemplo `RequestsContext.tsx`). Los contexts **leen** de `lib/mock`; no inventes usuarios ni publicaciones propios.
+- Los datos de mentira viven en el **servidor**: `server/src/features/<tema>/data.mock.ts` (`users`, `posts`, `requests`...). Son los mismos para las tres, para que cada usuario y publicación sea consistente en todas las pantallas.
+- El client **nunca** importa esos datos ni usa `fetch`. Pide todo al servidor con Axios (`lib/api.ts`) y **solo dentro de los contexts** en `src/context/`. Las pantallas y componentes leen del context (`useUsers()`, `usePosts()`, `useRequests()`), nunca llaman a Axios.
+- Cada una crea sus propios contexts en `src/context/` para el estado de sus pantallas (por ejemplo `RequestsContext.tsx`). Los contexts exponen `loading` y `error`; no inventes usuarios ni publicaciones propios.
 - Para activar tu context, agrega **una línea** en `src/context/Providers.tsx`, dentro de la sección con tu número de persona. No edites `layout.tsx`.
-- Puedes **agregar** datos a `lib/mock`. Si necesitas cambiar o borrar uno existente, avisa por WhatsApp: otra pantalla puede estar usándolo.
+- Puedes **agregar** datos a `data.mock.ts` del servidor (y su tipo en `client/src/types/`). Si necesitas cambiar o borrar uno existente, avisa por WhatsApp: otra pantalla puede estar usándolo.
+- El servidor solo tiene rutas GET. Crear o cambiar algo (una solicitud, un mensaje...) se guarda en el estado del context.
+- Para correr el proyecto hay que encender el servidor (`cd server && npm run dev`) y crear `client/.env.local` con `NEXT_PUBLIC_API_URL=http://localhost:4000` (copia `client/.env.example`).
 - No edites el context de otra persona.
 
 ### Contexts compartidos
@@ -218,7 +222,7 @@ Ya vienen creados. Se leen y no se editan.
   const { user } = useSession();
 ```
 
-  `login(id)` y `logout()` los conectan las pantallas de Iniciar sesión, Crear cuenta y Cerrar sesión (Persona 1). Para probar como prestadora, cambia `CURRENT_USER_ID` a `"u2"` en `lib/mock/users.ts`.
+  `login(id)` y `logout()` los conectan las pantallas de Iniciar sesión, Crear cuenta y Cerrar sesión (Persona 1). La app abre con `u2` (prestadora, `DEFAULT_USER_ID` en `SessionContext.tsx`); para probar como cliente cambia el rol o usa `login(id)`.
 - **Avisos (notificaciones)**: la Persona 2 crea el contenedor que los muestra encima de cualquier pantalla. Los demás solo llaman "mostrar aviso" cuando les haga falta. Hasta que exista, no inventes uno propio.
 
 En `Providers.tsx` hay una sección **Compartido** al inicio. No la toques; agrega tu línea solo en la sección de tu persona.

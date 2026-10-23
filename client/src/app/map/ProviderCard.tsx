@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/ui";
-import type { Post, User } from "@/lib/mock";
+import type { Post, User } from "@/types";
 
 interface ProviderCardProps {
   post: Post;

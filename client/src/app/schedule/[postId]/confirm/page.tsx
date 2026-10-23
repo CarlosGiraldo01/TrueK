@@ -5,9 +5,10 @@ import { use } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
-import { getPostById, getUserById } from "@/lib/mock";
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
 import { formatPrice } from "@/app/payment/formatPrice";
-import { formatDate, formatHours, formatTime, getHourlyRate } from "../../../requests/formatService";
+import { formatDate, formatHours, formatTime } from "../../../requests/formatService";
 import { ScheduleProgress } from "../../ScheduleProgress";
 import { ServiceSummaryCard } from "../../ServiceSummaryCard";
 
@@ -23,7 +24,9 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const ConfirmScreen = ({ postId }: { postId: string }) => {
   const router = useRouter();
-  const { draft, createRequest } = useRequests();
+  const { draft, createRequest, getHourlyRate } = useRequests();
+  const { getPostById } = usePosts();
+  const { getUserById } = useUsers();
   const post = getPostById(postId);
 
   if (!post) notFound();

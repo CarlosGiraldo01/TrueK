@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/ui";
 import { cn } from "@/components/ui/cn";
-import type { ServiceRequest, User } from "@/lib/mock";
+import type { ServiceRequest, User } from "@/types";
 import { formatPrice } from "@/app/payment/formatPrice";
 import { formatDate, formatHours, formatMeetingTime } from "../formatService";
 //tipo de las etiquetas los colores 

@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-import { CURRENT_USER_ID, USERS, getUserById, type User, type UserRole } from "@/lib/mock";
+import { useUsers } from "./UsersContext";
+import type { User, UserRole } from "@/types";
 
 /**
  * Interfaz de valores y métodos expuestos por el contexto de sesión de TrueK.
@@ -25,8 +26,10 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
+// Usuario con el que se abre la app la primera vez (Valentina, proveedora)
+const DEFAULT_USER_ID = "u2";
+
 const SESSION_USER_KEY = "truek_session_user_id";
-const SESSION_USERS_DATA_KEY = "truek_users_data";
 const SESSION_ROLE_KEY = "truek_session_active_role";
 
 /**
@@ -35,18 +38,8 @@ const SESSION_ROLE_KEY = "truek_session_active_role";
  * duradera en el navegador mediante localStorage.
  */
 export function SessionProvider({ children }: { children: ReactNode }) {
-  // Lista de usuarios con datos persistentes
-  const [usersList, setUsersList] = useState<User[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(SESSION_USERS_DATA_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error reading users from storage:", e);
-      }
-    }
-    return USERS;
-  });
+  // Los usuarios vienen del servidor a través de UsersContext
+  const { getUserById, updateUser } = useUsers();
 
   // Rol activo forzado o almacenado
   const [overrideRole, setOverrideRole] = useState<UserRole | null>(() => {
@@ -71,12 +64,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         console.error("Error reading session from storage:", e);
       }
     }
-    return CURRENT_USER_ID;
+    return DEFAULT_USER_ID;
   });
 
   /**
    * Efecto de sincronización con localStorage:
-   * Almacena o remueve las claves de sesión cada vez que cambian el usuario, rol o lista de usuarios.
+   * Almacena o remueve las claves de sesión cada vez que cambian el usuario o el rol.
    */
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -91,22 +84,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         } else {
           localStorage.removeItem(SESSION_ROLE_KEY);
         }
-        localStorage.setItem(SESSION_USERS_DATA_KEY, JSON.stringify(usersList));
       } catch (e) {
         console.error("Error saving session to storage:", e);
       }
     }
-  }, [userId, overrideRole, usersList]);
+  }, [userId, overrideRole]);
 
-  // Instancia del usuario actual resuelto desde el estado o los mocks
-  const user = userId ? (usersList.find((u) => u.id === userId) ?? getUserById(userId) ?? null) : null;
+  // Instancia del usuario actual, buscada entre los usuarios del servidor
+  const user = userId ? (getUserById(userId) ?? null) : null;
   const activeRole: UserRole = overrideRole ?? user?.role ?? "client";
 
   /**
    * Conmuta el rol activo y vincula automáticamente el usuario representativo:
    * - 'provider': Asigna a Valentina Arias (id: 'u2', Prestador).
    * - 'client': Asigna a Camila restrepo (id: 'u3', Cliente).
-   * 
+   *
    * @param role - Rol a activar.
    */
   const handleSetRole = (role: UserRole) => {
@@ -120,12 +112,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   /**
    * Inicia sesión con el usuario correspondiente al ID provisto.
-   * 
+   *
    * @param id - Identificador del usuario.
    */
   const handleLogin = (id: string) => {
     setUserId(id);
-    const targetUser = usersList.find((u) => u.id === id) ?? getUserById(id);
+    const targetUser = getUserById(id);
     if (targetUser) {
       setOverrideRole(targetUser.role);
     } else {
@@ -154,24 +146,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Actualiza los datos personales del usuario actual y los sincroniza en la lista global.
-   * 
+   * Actualiza los datos personales del usuario actual (UsersContext los guarda).
+   *
    * @param updatedData - Objeto parcial con las propiedades modificadas del usuario.
    */
   const handleUpdateUser = (updatedData: Partial<User>) => {
     if (!userId) return;
 
-    setUsersList((prev) =>
-      prev.map((u) => {
-        if (u.id === userId) {
-          const updated = { ...u, ...updatedData };
-          const mockUser = USERS.find((m) => m.id === userId);
-          if (mockUser) Object.assign(mockUser, updatedData);
-          return updated;
-        }
-        return u;
-      })
-    );
+    updateUser(userId, updatedData);
   };
 
   const value: SessionContextValue = {

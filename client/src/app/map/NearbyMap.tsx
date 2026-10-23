@@ -3,7 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { AttributionControl, MapContainer, Marker, TileLayer } from "react-leaflet";
-import type { Post } from "@/lib/mock";
+import type { Post } from "@/types";
 import { USER_POSITION } from "./constants";
 
 const dotIcon = (color: string, size: number, border: string) =>

@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { redirectUserByRole } from "@/app/page";
-import type { UserRole } from "@/lib/mock/types";
+import type { UserRole } from "@/types";
 
 export default function CompleteProfilePage() {
   const router = useRouter();

@@ -6,9 +6,9 @@ import { useRouter } from "next/navigation";// "useRouter" es como un GPS: nos d
 import { Button, Logo, NavBar, StarRating, TextField, TopHeader } from "@/components/ui";//los componenetes 
 import { useRequests } from "../../../../context/RequestContext";// Traemos la "caja de juguetes compartida" donde se guardan todos los pedidos.
 // Cualquier página puede abrir esta caja y ver o cambiar los pedidos.
-import { getPostById, getUserById, type Rating } from "@/lib/mock";// Traemos funciones que buscan información de prueba:
-// - getPostById: busca un anuncio por su número.
-// - getUserById: busca a una persona por su número.
+import { usePosts } from "@/context/PostsContext";
+import { useUsers } from "@/context/UsersContext";
+import type { Rating } from "@/types";
 // - Rating: es la "forma" que tiene una calificación, como un molde de galletas.
 
 const RatingScreen = ({ requestId }: { requestId: string }) => {
@@ -22,6 +22,9 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
   // - closeRequest: marca el pedido como terminado del todo
   const router = useRouter();
   const { getRequest, getRole, addRating, closeRequest } = useRequests();
+  // Para buscar el anuncio y a la persona que hace el servicio
+  const { getPostById } = usePosts();
+  const { getUserById } = useUsers();
   //estrellas
   const [stars, setStars] = useState(0);
   //cometario

@@ -1,4 +1,4 @@
-import type { User } from "./types";
+import type { User } from "./users.types";
 
 /**
  * Usuarios simulados de TrueK.
@@ -6,9 +6,7 @@ import type { User } from "./types";
  * u3 = Cliente principal (Camila restrepo)
  * u1 = Usuario secundario (Camilo Ordoñez)
  */
-export const CURRENT_USER_ID = "u2";
-
-export const USERS: User[] = [
+export const usersMock: User[] = [
   {
     id: "u2",
     name: "Valentina Arias",
