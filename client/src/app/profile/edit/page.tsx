@@ -6,25 +6,13 @@ import { ChevronLeftIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { NavBar } from "@/components/ui/NavBar";
 
-/**
- * Componente de la pantalla 'Editar perfil'.
- * 
- * Permite al usuario modificar sus datos personales:
- * - Foto de perfil (mediante carga de archivo local procesado a Base64).
- * - Nombre o alias.
- * - Edad.
- * - Ubicación geográfica.
- * - Descripción o biografía personal.
- * - Opción para cerrar sesión.
- */
+// Vista para editar los datos de perfil del usuario
 export default function EditProfilePage() {
   const router = useRouter();
   const { user, updateUser, logout } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Estado de los campos editables del perfil, inicializado con los datos actuales del usuario.
-   */
+  // Estados del form con los datos actuales del usuario
   const [formData, setFormData] = useState({
     name: user?.name ?? "",
     age: user?.age ? String(user.age) : "",
@@ -32,21 +20,14 @@ export default function EditProfilePage() {
     description: user?.description ?? "",
   });
 
-  /**
-   * Imagen previa del avatar en Base64 o URL.
-   */
+  // Vista previa de la foto de perfil
   const [avatarPreview, setAvatarPreview] = useState<string>(
     user?.profile_picture || "/brand/logo-icon.png"
   );
 
   const [isSaving, setIsSaving] = useState(false);
 
-  /**
-   * Manejador de cambio de fotografía de perfil:
-   * Convierte la nueva imagen seleccionada a Base64 con FileReader para persistencia inmediata.
-   * 
-   * @param e - Evento de cambio del input file.
-   */
+  // Convertir la imagen nueva a base64
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -60,19 +41,13 @@ export default function EditProfilePage() {
     }
   };
 
-  /**
-   * Manejador de guardado de los datos actualizados del perfil:
-   * Aplica los cambios mediante updateUser en el contexto de sesión y redirige a /profile.
-   * 
-   * @param e - Evento de envío del formulario.
-   */
+  // Guardar cambios y volver al perfil
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     const parsedAge = parseInt(formData.age, 10);
 
-    // Actualiza los datos del usuario en la sesión global
     updateUser({
       name: formData.name.trim() || user?.name,
       age: isNaN(parsedAge) ? user?.age : parsedAge,
@@ -83,15 +58,11 @@ export default function EditProfilePage() {
 
     setTimeout(() => {
       setIsSaving(false);
-      // Redirige al perfil para visualizar la información actualizada
       router.push("/profile");
     }, 200);
   };
 
-  /**
-   * Manejador de cierre de sesión:
-   * Limpia los datos de sesión activa en localStorage y redirige al inicio de sesión.
-   */
+  // Cerrar sesión y mandar al login
   const handleLogout = () => {
     logout();
     router.push("/login");
@@ -99,11 +70,8 @@ export default function EditProfilePage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#FF5E1B] selection:text-black">
-      {/* 
-        =======================================================================
-        ENCABEZADO: '< Editar perfil'
-        =======================================================================
-      */}
+      
+      {/* Header con botón para regresar */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#242423] bg-[#161615] px-4">
         <button
           type="button"
@@ -121,14 +89,11 @@ export default function EditProfilePage() {
         <div className="size-10" />
       </header>
 
-      {/* 
-        =======================================================================
-        FORMULARIO DE EDICIÓN DE PERFIL
-        =======================================================================
-      */}
+      {/* Formulario principal */}
       <main className="flex-1 px-5 py-6 pb-28">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Avatar con botón e icono de cámara para cambiar la foto */}
+          
+          {/* Foto de perfil */}
           <div className="flex justify-center my-2">
             <input
               ref={fileInputRef}
@@ -155,7 +120,7 @@ export default function EditProfilePage() {
             </button>
           </div>
 
-          {/* Campo: Nombre */}
+          {/* Nombre */}
           <div className="flex flex-col gap-1">
             <label htmlFor="name" className="text-xs font-medium text-[#8A8A8A]">
               Nombre
@@ -171,7 +136,7 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Campo: Edad */}
+          {/* Edad */}
           <div className="flex flex-col gap-1">
             <label htmlFor="age" className="text-xs font-medium text-[#8A8A8A]">
               Edad
@@ -189,7 +154,7 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Campo: Ubicación */}
+          {/* Ubicación */}
           <div className="flex flex-col gap-1">
             <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
               Ubicación
@@ -205,7 +170,7 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Campo: Descripción */}
+          {/* Descripción */}
           <div className="flex flex-col gap-1">
             <label htmlFor="description" className="text-xs font-medium text-[#8A8A8A]">
               Descripción
@@ -221,7 +186,7 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Botón: Actualizar perfil (Color naranja TrueK #FF5E1B) */}
+          {/* Botón actualizar */}
           <button
             type="submit"
             disabled={isSaving}
@@ -230,7 +195,7 @@ export default function EditProfilePage() {
             {isSaving ? "Actualizando..." : "Actualizar perfil"}
           </button>
 
-          {/* Enlace: Cerrar sesión */}
+          {/* Cerrar sesión */}
           <div className="mt-2 text-center">
             <button
               type="button"
@@ -243,7 +208,6 @@ export default function EditProfilePage() {
         </form>
       </main>
 
-      {/* Menú inferior */}
       <NavBar activeId="perfil" />
     </div>
   );

@@ -2,9 +2,7 @@
 
 import { FeedView } from "@/components/feed/FeedView";
 
-/**
- * Ruta dinámica /feed que renderiza según el rol activo de la sesión.
- */
+// Vista principal del feed, se adapta solita según el rol que tenga el usuario activo
 export default function MainFeedPage() {
   return <FeedView />;
 }
