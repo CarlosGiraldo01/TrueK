@@ -16,3 +16,7 @@ export const getRatingById = async (req: Request, res: Response) => {
 
     res.json(item);
 };
+// GET /ratings/averages
+export const getRatingAverages = async (_req: Request, res: Response) => {
+  res.json(await ratingsService.getAverages());
+};

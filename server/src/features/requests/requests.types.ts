@@ -1,11 +1,6 @@
-export type ServiceStatus =
+import { NotificationType } from "../notifications/notifications.types";
 
-  | "pending"
-  | "accepted"
-  | "rejected"
-  | "active"
-  | "finished"
-  | "cancelled";
+export type ServiceStatus = "pending"|"accepted"|"rejected"|"active"|"finished"|"cancelled";
 
 export interface ServiceRequest {
   id: string;
@@ -18,4 +13,19 @@ export interface ServiceRequest {
   request_image: string | null;
   payment_confirmed: boolean;
   price: number;  
+}
+export type RequestAction = "accept"|"reject"|"finish";
+export interface RequesttWithProvider extends ServiceRequest {
+  provider_id: string|null;
+}
+export interface Quote {
+  post_id: string;
+  provider_id: string;
+  hours: number;
+  price_per_hour: number;
+  total: number;
+}
+export interface Transition {
+  status: ServiceStatus;
+  notification_type: NotificationType;
 }
