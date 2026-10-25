@@ -4,31 +4,14 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
 import type { UserRole } from "@/types";
 
-/**
- * ============================================================================
- * UTILIDAD DE NAVEGACIÓN Y GESTIÓN DE ROLES (ARQUITECTURA DE LA APP)
- * ============================================================================
- * 
- * Flujo de bifurcación según el rol del usuario:
- * Esta función es invocada una vez que el usuario completa el inicio de sesión
- * o registro exitosamente desde sus respectivos formularios:
- * - 'provider' -> Redirige al Feed Proveedor (/feed/provider) donde el usuario
- *                 gestiona servicios ofertados y solicitudes entrantes.
- * - 'client'   -> Redirige al Feed Cliente (/feed/client) donde el usuario
- *                 explora experiencias, publicaciones y mapa interactivo.
- *
- * @param role Tipo de rol del usuario ('client' | 'provider')
- * @param router Instancia de enrutador de Next.js
- */
+// Mandar al usuario al feed que le corresponde según si es proveedor o cliente
 export function redirectUserByRole(
   role: UserRole,
   router: { push: (path: string) => void }
 ) {
   if (role === "provider") {
-    // Feed Proveedor: Panel para administrar servicios y solicitudes entrantes
     router.push("/feed/provider");
   } else {
-    // Feed Cliente: Panel para explorar y reservar experiencias
     router.push("/feed/client");
   }
 }
@@ -36,24 +19,10 @@ export function redirectUserByRole(
 export default function WelcomePage() {
   const router = useRouter();
 
-  /**
-   * --------------------------------------------------------------------------
-   * MANEJADOR: REGISTRARSE
-   * --------------------------------------------------------------------------
-   * Al hacer clic en "Registrarse", redirige directamente a la pantalla
-   * de creación de cuenta (/register).
-   */
   const handleRegister = () => {
     router.push("/register");
   };
 
-  /**
-   * --------------------------------------------------------------------------
-   * MANEJADOR: INICIAR SESIÓN
-   * --------------------------------------------------------------------------
-   * Al hacer clic en "Iniciar sesión", redirige directamente a la pantalla
-   * de inicio de sesión (/login).
-   */
   const handleLogin = () => {
     router.push("/login");
   };
@@ -63,16 +32,9 @@ export default function WelcomePage() {
       className="relative flex flex-1 flex-col justify-between px-6 py-8 sm:px-8 select-none"
       aria-label="Pantalla de bienvenida trueek"
     >
-      {/* 
-        =======================================================================
-        SECCIÓN SUPERIOR / CENTRAL: LOGO Y ESLOGAN
-        =======================================================================
-        Centrado visual en la mitad superior con fidelidad exacta a la maqueta:
-        - Ilustración amarilla/naranja con texto blanco 'truek.'
-        - Eslogan centrado en gris claro (#9CA3AF)
-      */}
+      
+      {/* Logo y eslogan en el centro */}
       <div className="flex flex-1 flex-col items-center justify-center text-center -mt-6 sm:-mt-10">
-        {/* Logotipo oficial de la marca */}
         <div className="flex items-center justify-center transition-transform hover:scale-105 duration-300">
           <Logo
             variant="vertical"
@@ -81,21 +43,15 @@ export default function WelcomePage() {
           />
         </div>
 
-        {/* Eslogan oficial */}
         <p className="mt-6 max-w-[280px] text-[15px] sm:text-base font-normal leading-relaxed text-[#9CA3AF] tracking-wide">
           Conecta con personas para vivir<br />nuevas experiencias
         </p>
       </div>
 
-      {/* 
-        =======================================================================
-        SECCIÓN INFERIOR: BOTONES DE ACCIÓN PRINCIPALES
-        =======================================================================
-        - Registrarse: Rectángulo redondeado fondo lima (#D3FC31), texto negro negrita
-        - Iniciar sesión: Fondo transparente, borde lima, texto lima negrita
-      */}
+      {/* Botones de abajo para entrar o registrarse */}
       <div className="w-full flex flex-col gap-3.5 pb-2 sm:pb-4">
-        {/* Botón Registrarse (Primario) -> Navega a /register */}
+        
+        {/* Botón Registrarse */}
         <button
           type="button"
           onClick={handleRegister}
@@ -105,7 +61,7 @@ export default function WelcomePage() {
           Registrarse
         </button>
 
-        {/* Botón Iniciar sesión (Secundario / Outline) -> Navega a /login */}
+        {/* Botón Iniciar sesión */}
         <button
           type="button"
           onClick={handleLogin}
