@@ -10,38 +10,21 @@ import { usePosts } from "@/context/PostsContext";
 import { useRequests } from "@/context/RequestContext";
 
 interface FeedViewProps {
-  /**
-   * Rol forzado para la vista (útil para rutas fijas como /feed/provider y /feed/client).
-   * Si no se especifica, toma el rol activo actual de la sesión.
-   */
+  // Rol forzado opcional para páginas fijas de proveedor o cliente
   forcedRole?: UserRole;
 }
 
-/**
- * Componente unificado de la vista de Feed Principal de TrueK.
- * 
- * Reglas de negocio y presentación por rol:
- * - Rol Proveedor ('provider'): Se muestra el botón (+) en el encabezado superior para
- *   crear trueks o publicar servicios.
- * - Rol Cliente ('client'): El botón (+) no se renderiza en el DOM, manteniendo la interfaz
- *   limpia para consumo y búsqueda de experiencias.
- * - En ambos roles se visualiza el listado de tarjetas de trueks con foto, nombre, descripción,
- *   etiquetas, ubicación, estrellas y enlace 'Ver más'.
- */
+// Vista principal del feed: muestra las publicaciones y maneja los roles
 export function FeedView({ forcedRole }: FeedViewProps) {
   const router = useRouter();
   const { activeRole, setActiveRole } = useSession();
   const { posts } = usePosts();
   const { getUserRating } = useRequests();
 
-  // Rol efectivo a renderizar
   const currentRole: UserRole = forcedRole ?? activeRole;
   const isProvider = currentRole === "provider";
 
-  /**
-   * Manejador del botón (+) para crear publicaciones:
-   * Sincroniza el rol activo a 'provider' y navega al formulario de creación (/feed/create).
-   */
+  // Al crear post, aseguramos que esté en modo proveedor y mandamos al form
   const handleCreatePost = () => {
     if (activeRole !== "provider") {
       setActiveRole("provider");
@@ -49,32 +32,20 @@ export function FeedView({ forcedRole }: FeedViewProps) {
     router.push("/feed/create");
   };
 
-  /**
-   * Navega a la vista detallada de la publicación seleccionada.
-   * 
-   * @param postId - ID único de la publicación.
-   */
   const handleSeeMore = (postId: string) => {
     router.push("/post/" + postId);
   };
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#D3FC31] selection:text-black">
-      {/* 
-        =======================================================================
-        BARRA SUPERIOR (HEADER): VISIBILIDAD CONDICIONAL DEL BOTÓN (+) POR ROL
-        =======================================================================
-      */}
+      
+      {/* Header del feed (cambia el botón de crear según el rol) */}
       <FeedHeader
         role={currentRole}
         onCreatePost={isProvider ? handleCreatePost : undefined}
       />
 
-      {/* 
-        =======================================================================
-        FEED PRINCIPAL: LISTADO DE PUBLICACIONES / EXPERIENCIAS
-        =======================================================================
-      */}
+      {/* Listado de publicaciones */}
       <main className="flex-1 px-4 py-4 pb-28">
         <div className="flex flex-col gap-5">
           {posts.map((post) => {
@@ -97,12 +68,7 @@ export function FeedView({ forcedRole }: FeedViewProps) {
         </div>
       </main>
 
-      {/* 
-        =======================================================================
-        BADGE FLOTANTE DE CONTROL / CAMBIO RÁPIDO DE ROL
-        =======================================================================
-        Facilita alternar instantáneamente entre rol Proveedor y Cliente para pruebas.
-      */}
+      {/* Botón flotante para cambiar de rol rápido (muy útil para testear) */}
       <div className="fixed bottom-20 right-4 z-40">
         <button
           type="button"
@@ -130,11 +96,7 @@ export function FeedView({ forcedRole }: FeedViewProps) {
         </button>
       </div>
 
-      {/* 
-        =======================================================================
-        MENÚ DE NAVEGACIÓN INFERIOR (COMÚN A CLIENTE Y PROVEEDOR)
-        =======================================================================
-      */}
+      {/* Menú inferior */}
       <NavBar activeId="inicio" />
     </div>
   );

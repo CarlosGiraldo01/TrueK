@@ -5,36 +5,12 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 import type { UserRole } from "@/types";
 
 interface FeedHeaderProps {
-  /**
-   * Rol activo del usuario ('provider' o 'client').
-   * Determina la visibilidad de los controles de publicación.
-   */
   role: UserRole;
-  /**
-   * Callback invocado al hacer clic en el botón de crear publicación.
-   */
   onCreatePost?: () => void;
-  /**
-   * Clases opcionales adicionales para el encabezado.
-   */
   className?: string;
 }
 
-/**
- * ============================================================================
- * COMPONENTE FEEDHEADER - BARRA SUPERIOR CON CONTROL DE VISIBILIDAD POR ROL
- * ============================================================================
- * 
- * Reglas de visibilidad implementadas:
- * 1. Rol Proveedor ('provider'):
- *    - Se renderiza el botón flotante / superior con ícono (+) en la esquina derecha.
- *    - Permite al proveedor acceder a la creación de publicaciones o servicios.
- * 
- * 2. Rol Cliente ('client'):
- *    - El botón (+) se excluye completamente del árbol del DOM (renderizado condicional null).
- *    - La barra queda completamente limpia, mostrando únicamente el logotipo oficial 'truek.'.
- *    - El cliente no dispone de ningún acceso visual ni funcional para publicar.
- */
+// Cabecera del feed: muestra el logo y el botón de (+) solo si es proveedor
 export function FeedHeader({ role, onCreatePost, className = "" }: FeedHeaderProps) {
   const isProvider = role === "provider";
 
@@ -44,15 +20,13 @@ export function FeedHeader({ role, onCreatePost, className = "" }: FeedHeaderPro
       aria-label="Barra superior del Feed"
     >
       <div className="flex h-10 items-center justify-between">
-        {/* Logotipo de la marca en la esquina superior izquierda */}
+        
+        {/* Logo de la marca */}
         <div className="flex items-center">
           <Logo variant="horizontal" height={28} className="select-none" />
         </div>
 
-        {/* 
-          Control condicional estricto por rol:
-          Sólo los proveedores visualizan y pueden accionar el botón de creación (+)
-        */}
+        {/* Botón de crear post (solo para proveedores) */}
         {isProvider ? (
           <button
             type="button"
