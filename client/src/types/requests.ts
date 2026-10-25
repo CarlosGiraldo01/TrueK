@@ -1,17 +1,14 @@
-export type ServiceStatus =
+import type { NotificationType } from "./notifications";
 
-  | "pending"
-  | "accepted"
-  | "rejected"
-  | "active"
-  | "finished"
-  | "cancelled";
+export type ServiceStatus ="pending"|"accepted"|"rejected"|"active"|"finished"|"cancelled";
 
 export interface ServiceRequest {
 
   id: string;
   post_id: string;
   client_id: string;
+  // Lo agrega el servidor: es el dueño de la publicación
+  provider_id: string | null;
   meeting_address: string;
   meeting_date: string;
   hours: number;
@@ -20,3 +17,20 @@ export interface ServiceRequest {
   payment_confirmed: boolean;
   price: number;
   }
+
+export type RequestAction = "accept" | "reject" | "finish";
+
+// Respuesta de GET /requests/quote
+export interface Quote {
+  post_id: string;
+  provider_id: string;
+  hours: number;
+  price_per_hour: number;
+  total: number;
+}
+
+// Respuesta de GET /requests/transition
+export interface Transition {
+  status: ServiceStatus;
+  notification_type: NotificationType;
+}

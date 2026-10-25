@@ -22,9 +22,9 @@ export function ProviderRequestView({ request, client, imageUrl }: Props) {
     );
   }
  // Esto pasa cuando el trabajador aprieta el botón "Rechazar":
-  const handleReject = () => {
-    //se marca como rechazado
-    rejectRequest(request.id);
+  const handleReject = async () => {
+    //se marca como rechazado (el servidor dice si se puede)
+    await rejectRequest(request.id);
     //ubicador de devuleta vacio
     router.push("/requests");
   };
@@ -40,3 +40,4 @@ export function ProviderRequestView({ request, client, imageUrl }: Props) {
     </ServiceDetailCard>
   );
 }
+

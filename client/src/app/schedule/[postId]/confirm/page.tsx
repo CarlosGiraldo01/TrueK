@@ -24,7 +24,12 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const ConfirmScreen = ({ postId }: { postId: string }) => {
   const router = useRouter();
-  const { draft, createRequest, getHourlyRate } = useRequests();
+  const requests = useRequests() as ReturnType<typeof useRequests> & {
+    quote: { price_per_hour: number; total: number } | null;
+    quoteLoading: boolean;
+    quoteError: string | null;
+  };
+  const { draft, createRequest, quote, quoteLoading, quoteError } = requests;
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const post = getPostById(postId);
@@ -45,9 +50,22 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
     );
   }
 
+  // El precio lo calcula el servidor (GET /requests/quote) cuando se guarda el formulario.
+  if (quoteLoading || !quote) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <TopHeader title="Confirmar servicio" />
+        <main className="flex flex-1 items-center justify-center px-10 text-center">
+          <p className="text-sm text-truek-placeholder">{quoteError ?? "Calculando el precio..."}</p>
+        </main>
+        <NavBar activeId="inicio" />
+      </div>
+    );
+  }
+
   const provider = getUserById(post.user_id);
-  const pricePerHour = getHourlyRate(post.id);
-  const total = pricePerHour * draft.hours;
+  const pricePerHour = quote.price_per_hour;
+  const total = quote.total;
 
   const handleConfirm = () => {
     const request = createRequest();

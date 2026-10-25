@@ -27,9 +27,9 @@ export default function RequestsPage() {
   const showChat = currentRequest?.status === "accepted" || currentRequest?.status === "active";
 
   // El cliente termina el servicio: primero califica y después paga
-  const handleFinish = () => {
+  const handleFinish = async () => {
     if (!currentRequest) return;
-    finishRequest(currentRequest.id);
+    await finishRequest(currentRequest.id);
     router.push(`/requests/${currentRequest.id}/rating`);
   };
 
