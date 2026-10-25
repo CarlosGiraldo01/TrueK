@@ -19,27 +19,25 @@ export default function RegisterPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Manejador para incrementar o decrementar la edad con las flechas
+  // Subir o bajar la edad con las flechitas de forma sencilla
   const handleStepAge = (increment: number) => {
-    setFormData((prev) => {
-      const current = parseInt(prev.edad, 10);
-      const next = isNaN(current)
-        ? (increment > 0 ? 18 : 1)
-        : Math.max(1, Math.min(120, current + increment));
-      return { ...prev, edad: next.toString() };
-    });
+    const current = Number(formData.edad) || 18;
+    const next = current + increment;
+    if (next >= 1 && next <= 120) {
+      setFormData((prev) => ({ ...prev, edad: String(next) }));
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Datos de registro inicial:", formData);
+    console.log("Datos de registro:", formData);
     router.push("/complete-profile");
   };
 
   return (
     <div className="relative min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#161615]">
       
-      {/* Siluetas de fondo TrueK */}
+      {/* Logos de fondo */}
       <div 
         aria-hidden="true" 
         className="pointer-events-none absolute -top-12 -left-16 w-80 h-80 opacity-[0.12] rotate-[-20deg]"
@@ -82,10 +80,10 @@ export default function RegisterPage() {
         />
       </div>
 
-      {/* Contenedor central: Botón volver + Tarjeta modal */}
+      {/* Contenedor central */}
       <div className="relative z-10 w-full max-w-[360px] flex flex-col">
         
-        {/* Botón Volver circular color lima con flecha negra */}
+        {/* Botón para volver */}
         <button
           type="button"
           onClick={() => router.push("/")}
@@ -108,7 +106,7 @@ export default function RegisterPage() {
           </svg>
         </button>
 
-        {/* Tarjeta modal: Crear cuenta */}
+        {/* Tarjeta de registro */}
         <div className="w-full rounded-[26px] sm:rounded-[28px] border border-[#D3FC31] bg-[#0E0E0D] shadow-2xl overflow-hidden">
           
           <div className="pt-5 pb-4 text-center">
@@ -121,7 +119,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-4">
             
-            {/* 1. Nombre completo */}
+            {/* Nombre */}
             <div className="flex flex-col">
               <label
                 htmlFor="nombreCompleto"
@@ -142,7 +140,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* 2. Email */}
+            {/* Email */}
             <div className="flex flex-col">
               <label
                 htmlFor="email"
@@ -166,7 +164,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* 3. Contraseña */}
+            {/* Contraseña */}
             <div className="flex flex-col">
               <label
                 htmlFor="password"
@@ -188,7 +186,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* 4. Edad con flechas estilizadas */}
+            {/* Edad con botones para subir/bajar */}
             <div className="flex flex-col">
               <label
                 htmlFor="edad"
@@ -210,7 +208,6 @@ export default function RegisterPage() {
                   className="h-[46px] w-full rounded-[12px] bg-[#363636] pl-4 pr-10 text-sm text-white placeholder:text-[#8A8A8A] outline-none transition-all focus:ring-1.5 focus:ring-[#D3FC31]/60 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
 
-                {/* Flechas arriba / abajo con coherencia visual al diseño */}
                 <div className="absolute right-2 flex flex-col gap-0.5">
                   <button
                     type="button"
@@ -236,7 +233,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Botón Continuar */}
+            {/* Botón de envío */}
             <button
               type="submit"
               className="mt-3 flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#D3FC31] text-base font-bold text-black transition-all duration-150 hover:bg-[#cbf127] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D3FC31]"
