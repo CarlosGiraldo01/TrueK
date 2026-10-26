@@ -4,3 +4,4 @@ export const requestsRepository = {
   findAll: async () => requestsMock,
   findById: async (id: string) => requestsMock.find((item) => item.id === id),
 };
+//consultar los datos almacenados en data.mock: findAll

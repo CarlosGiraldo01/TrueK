@@ -5,7 +5,8 @@ import type { RequestAction, ServiceStatus } from "./requests.types";
 const STATUSES: ServiceStatus[] = ["pending", "accepted", "rejected", "active", "finished", "cancelled"];
 const ACTIONS: RequestAction[] = ["accept", "reject", "finish"];
 const MAX_HOURS = 12;
-
+//controlador de solicitudes del backend de Truek. 
+//Recibe las peticiones del frontend y se conecta con requestsService para consultar las solicitudes, buscar una solicitud específica
 export const getRequests = async (_req: Request, res: Response) => {
   res.json(await requestsService.getAll());
 };
@@ -22,13 +23,13 @@ export const getRequestById = async (req: Request, res: Response) => {
   res.json(item);
 };
 
-// GET /requests/current/:userId
+
 export const getCurrentRequest = async (req: Request, res: Response) => {
   const userId = String(req.params.userId);
   res.json(await requestsService.getCurrent(userId));
 };
 
-// GET /requests/quote?post_id=p1&hours=2
+
 export const getQuote = async (req: Request, res: Response) => {
   const postId = typeof req.query.post_id === "string" ? req.query.post_id : "";
   const hours = Number(req.query.hours);
@@ -53,7 +54,7 @@ export const getQuote = async (req: Request, res: Response) => {
   res.json(quote);
 };
 
-// GET /requests/transition?status=pending&action=accept
+
 export const getTransition = async (req: Request, res: Response) => {
   const status = req.query.status as ServiceStatus;
   const action = req.query.action as RequestAction;

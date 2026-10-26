@@ -7,4 +7,4 @@ requestsRouter.get("/", getRequests);
 requestsRouter.get("/current/:userId", getCurrentRequest);
 requestsRouter.get("/quote", getQuote);
 requestsRouter.get("/transition",getTransition);
-requestsRouter.get("/:id", getRequestById);
+requestsRouter.get("/:id", getRequestById);//rutas

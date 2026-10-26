@@ -21,3 +21,4 @@ export const ratingsService = {
   getById: (id: string) => ratingsRepository.findById(id),
   getAverages,
 };
+//conecta con ratingsRepository para obtener y buscar calificaciones, y calcula el promedio de las puntuaciones que recibe cada usuario.
