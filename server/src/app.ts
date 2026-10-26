@@ -9,14 +9,14 @@ import { messagesRouter } from './features/messages/messages.router';
 import { notificationsRouter } from './features/notifications/notifications.router';
 
 export const app = express();
-
+//mas rutas 
 app.use(cors({ origin: config.clientOrigin }));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
-
+//rutas 
 app.use('/users', usersRouter);
 app.use('/posts', postsRouter);
 app.use('/requests', requestsRouter);
