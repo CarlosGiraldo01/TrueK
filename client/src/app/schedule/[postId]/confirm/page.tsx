@@ -1,4 +1,4 @@
-//paso 2: el archivo que acabamos de comentar, donde se revisa todo y se confirma.
+
 "use client";
 
 import { use } from "react";
@@ -12,7 +12,8 @@ import { formatDate, formatHours, formatTime } from "../../../requests/formatSer
 import { ScheduleProgress } from "../../ScheduleProgress";
 import { ServiceSummaryCard } from "../../ServiceSummaryCard";
 
-
+//página de confirmación de un servicio en Truek. 
+//Recopila los datos que el cliente ingresó al agendar, muestra el resumen del servicio y calcula el precio mediante el servidor
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -24,19 +25,14 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const ConfirmScreen = ({ postId }: { postId: string }) => {
   const router = useRouter();
-  const requests = useRequests() as ReturnType<typeof useRequests> & {
-    quote: { price_per_hour: number; total: number } | null;
-    quoteLoading: boolean;
-    quoteError: string | null;
-  };
-  const { draft, createRequest, quote, quoteLoading, quoteError } = requests;
+  const { draft, createRequest, quote, quoteLoading, quoteError } = useRequests();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const post = getPostById(postId);
 
   if (!post) notFound();
 
-  // Opened directly without filling the form first.
+  
   if (!draft || draft.post_id !== postId) {
     return (
       <div className="flex min-h-dvh flex-col">
@@ -50,7 +46,7 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
     );
   }
 
-  // El precio lo calcula el servidor (GET /requests/quote) cuando se guarda el formulario.
+//verifica si el precio del servicio todavía se está calculando o si aún no está disponible
   if (quoteLoading || !quote) {
     return (
       <div className="flex min-h-dvh flex-col">
@@ -68,7 +64,7 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
   const total = quote.total;
 
   const handleConfirm = () => {
-    const request = createRequest();
+    const request = createRequest();//ermite confirmar la solicitud usando
     if (request) router.replace(`/schedule/${postId}/success`);
   };
 

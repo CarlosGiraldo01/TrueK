@@ -1,10 +1,5 @@
-// Guarda y maneja las solicitudes de servicio de la app.
-// Las reglas (qué solicitud se ve, cuánto cuesta, a qué estado pasa, qué aviso sale)
-// las decide el servidor. Aquí solo se piden con axios y se guarda lo que responde.
-// Como el servidor solo tiene GET, lo que se crea o cambia en la sesión vive en memoria.
-
 "use client";
-
+//reune todas las llamadas
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { useSession } from "./SessionContext";
@@ -12,35 +7,38 @@ import { useNotifications } from "./NotificationsContext";
 import { usePosts } from "./PostsContext";
 import { useUsers } from "./UsersContext";
 import type {Notification,NotificationType,Quote,Rating,RequestAction,ServiceRequest,ServiceStatus,Transition,} from "@/types";
+//centraliza y administra la información y las funciones de las solicitudes de servicios de Truek
+// Espera antes de mostrar un aviso al entrar con un usuario (1000 = 1 segundo).
+const NOTICE_DELAY = 1500;
 
-// Tiempos de espera de las simulaciones (1000 = 1 segundo).
-const PROVIDER_RESPONSE_DELAY = 6000; // El prestador acepta.
-const PROVIDER_FINISH_DELAY = 12000; // El prestador termina.
-const CLIENT_RATING_DELAY = 4000; // El cliente califica.
-const INCOMING_REQUEST_DELAY = 2500; // Al prestador le llega el aviso de solicitud nueva.
 
-// Datos del formulario "Agendar Servicio" antes de confirmar.
 export interface ScheduleDraft {
   post_id: string;
   client_name: string;
   meeting_address: string;
   hours: number;
-  date: string; // ej: "2026-11-14"
-  time: string; // ej: "16:00"
+  date: string; 
+  time: string; 
   request_image: string | null;
 }
 
 // Papel del usuario en una solicitud.
 export type RequestRole = "client" | "provider";
 
+// Aviso que espera a que entre el usuario que lo debe ver.
+interface PendingNotice {
+  userId: string;
+  requestId: string;
+  type: NotificationType;
+}
+
 interface RequestsContextValue {
   requests: ServiceRequest[];
   loading: boolean;
   error: string | null;
   getRequest: (id: string) => ServiceRequest | undefined;
-  currentRequest: ServiceRequest | undefined; // La que se ve en la pestaña Servicios.
+  currentRequest: ServiceRequest | undefined; 
   getRole: (request: ServiceRequest) => RequestRole | null;
-
   draft: ScheduleDraft | null;
   saveDraft: (draft: ScheduleDraft) => void;
   quote: Quote | null; // Precio que calculó el servidor para el formulario.
@@ -48,18 +46,13 @@ interface RequestsContextValue {
   quoteError: string | null;
   createRequest: () => ServiceRequest | null;
   lastCreatedId: string | null;
-
   acceptRequest: (id: string) => Promise<void>;
   rejectRequest: (id: string) => Promise<void>;
   finishRequest: (id: string) => Promise<void>;
   closeRequest: (id: string) => void;
-
   getRating: (requestId: string) => Rating | undefined;
   getUserRating: (userId: string) => number;
   addRating: (requestId: string, rating: Rating["rating"], comment: string) => void;
-
-  simulateProviderFinish: (id: string) => () => void;
-  simulateClientRating: (id: string) => () => void;
 }
 
 const RequestsContext = createContext<RequestsContextValue | null>(null);
@@ -77,23 +70,20 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [serverCurrentId, setServerCurrentId] = useState<string | null>(null); // La que eligió el servidor.
-  const [closedIds, setClosedIds] = useState<string[]>([]);
-  const [createdIds, setCreatedIds] = useState<string[]>([]);
+  const [closedIds, setClosedIds] = useState<string[]>([]); // Guarda solicitud del usuario para que cada uno cierre las suyas.
+  const [sessionIds, setSessionIds] = useState<string[]>([]); // Solicitudes creadas o respondidas en esta sesión.
   const [draft, setDraft] = useState<ScheduleDraft | null>(null);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
-
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  const notifiedIncoming = useRef(new Set<string>()); // Avisos que ya se mostraron.
+  const notifiedIncoming = useRef(new Set<string>()); // Avisos del servidor que ya se mostraron.
+  const pendingNotices = useRef<PendingNotice[]>([]); // Avisos para el otro usuario.
   const requestsRef = useRef<ServiceRequest[]>([]); // Copia para los temporizadores.
 
   // Al abrir la app pide las solicitudes, las calificaciones y los promedios.
-  useEffect(() => {
-    let cancelled = false;
-
-    Promise.all([
+  useEffect(() => {let cancelled = false;Promise.all([
       api.get<ServiceRequest[]>("/requests"),
       api.get<Rating[]>("/ratings"),
       api.get<Record<string, number>>("/ratings/averages"),
@@ -145,22 +135,18 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     return () => pending.forEach(clearTimeout);
   }, []);
 
-  // Ejecuta algo después de un tiempo. Devuelve una función para cancelarlo.
+  // Ejecuta algo después de un tiempo.
   const schedule = useCallback((callback: () => void, delay: number) => {
     const timer = setTimeout(() => {
       timers.current.delete(timer);
       callback();
     }, delay);
     timers.current.add(timer);
-    return () => {
-      clearTimeout(timer);
-      timers.current.delete(timer);
-    };
   }, []);
 
   const getRequest = useCallback((id: string) => requests.find((r) => r.id === id), [requests]);
 
-  // provider_id ya viene del servidor, solo comparamos con el usuario.
+  // ya viene del servidor, solo comparamos con el usuario.
   const getRole = useCallback(
     (request: ServiceRequest): RequestRole | null => {
       if (!userId) return null;
@@ -171,35 +157,72 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     [userId],
   );
 
-  // Si el usuario pidió algo en esta sesión se muestra eso; si no, la que eligió el servidor.
-  const createdByMe = requests.find(
-    (r) => createdIds.includes(r.id) && r.client_id === userId && !closedIds.includes(r.id),
-  );
-  const fromServer = requests.find((r) => r.id === serverCurrentId && !closedIds.includes(r.id));
-  const currentRequest = createdByMe ?? fromServer;
+  // El usuario ve sus solicitudes El prestador no vuelve a ver las que rechazó.
+  const isVisible = (request: ServiceRequest) => {
+    if (!userId || closedIds.includes(`${userId}-${request.id}`)) return false;
+    if (request.client_id === userId) return true;
+    return request.provider_id === userId && request.status !== "rejected";
+  };
+
+  // Primero lo que pasó en esta sesión (lo más nuevo); si no hay, la que eligió el servidor.
+  const fromSession = sessionIds
+    .map((id) => requests.find((r) => r.id === id))
+    .find((r) => r !== undefined && isVisible(r));
+  const fromServer = requests.find((r) => r.id === serverCurrentId && isVisible(r));
+  const currentRequest = fromSession ?? fromServer;
 
   const updateStatus = useCallback((id: string, status: ServiceStatus) => {
     setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
   }, []);
 
-  // Muestra al cliente el aviso que decidió el servidor.
-  const notifyClient = useCallback(
+  // Pone la solicitud de primera en la lista de la sesión.
+  const markInSession = useCallback((id: string) => {
+    setSessionIds((prev) => [id, ...prev.filter((item) => item !== id)]);
+  }, []);
+
+  // Deja guardado un aviso para que lo vea el otro usuario cuando entre.
+  const addNotice = useCallback((notice: PendingNotice) => {
+    pendingNotices.current = [...pendingNotices.current, notice];
+  }, []);
+
+  // Muestra un aviso. Si es una solicitud nueva se ve el cliente; si no, el prestador.
+  const showNotice = useCallback(
     (request: ServiceRequest, type: NotificationType) => {
-      const provider = request.provider_id ? getUserById(request.provider_id) : undefined;
+      const isIncoming = type === "incoming_services";
+      const personId = isIncoming ? request.client_id : request.provider_id;
+      const person = personId ? getUserById(personId) : undefined;
+      const post = getPostById(request.post_id);
+
       showNotification({
         type,
-        name: provider?.name ?? "Prestador",
-        avatarUrl: provider?.profile_picture ?? undefined,
+        name: person?.name ?? (isIncoming ? "Cliente" : "Prestador"),
+        avatarUrl: person?.profile_picture ?? undefined,
+        tag: isIncoming ? post?.tags[0] : undefined,
         href: type === "services_finished" ? `/requests/${request.id}/rating` : `/requests/${request.id}`,
       });
     },
-    [showNotification, getUserById],
+    [showNotification, getUserById, getPostById],
   );
 
+  // Cuando entra un usuario, le muestra los avisos que le dejaron.
+  useEffect(() => {
+    if (!userId) return;
+
+    const mine = pendingNotices.current.filter((notice) => notice.userId === userId);
+    pendingNotices.current = pendingNotices.current.filter((notice) => notice.userId !== userId);
+
+    mine.forEach((notice) => {
+      schedule(() => {
+        const request = requestsRef.current.find((r) => r.id === notice.requestId);
+        if (request) showNotice(request, notice.type);
+      }, NOTICE_DELAY);
+    });
+  }, [userId, schedule, showNotice]);
+
   // Le pregunta al servidor a qué estado pasa la solicitud con esa acción.
-  // Si notify es true, también muestra el aviso que el servidor dijo.
+  // Si el cambio no se puede, el servidor responde 400 y no se cambia nada.
   const changeStatus = useCallback(
-    async (id: string, action: RequestAction, notify: boolean) => {
+    async (id: string, action: RequestAction) => {
       const request = requestsRef.current.find((r) => r.id === id);
       if (!request) return;
 
@@ -208,12 +231,17 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
           params: { status: request.status, action },
         });
         updateStatus(id, res.data.status);
-        if (notify) notifyClient(request, res.data.notification_type);
+        markInSession(id);
+
+        // Si quien hizo el cambio es el prestador, el aviso que dijo el servidor es para el cliente.
+        if (request.provider_id === userId) {
+          addNotice({ userId: request.client_id, requestId: id, type: res.data.notification_type });
+        }
       } catch {
-        // El servidor responde 400 si la acción no se puede hacer en ese estado: no se cambia nada.
+        // No se pudo hacer el cambio.
       }
     },
-    [updateStatus, notifyClient],
+    [updateStatus, markInSession, addNotice, userId],
   );
 
   const getUserRating = useCallback((id: string) => averages[id] ?? 0, [averages]);
@@ -250,35 +278,32 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       price: quote.total,
     };
     setRequests((prev) => [request, ...prev]);
-    setCreatedIds((prev) => [request.id, ...prev]);
+    requestsRef.current = [request, ...requestsRef.current];
+    markInSession(request.id);
     setLastCreatedId(request.id);
     setDraft(null);
     setQuote(null);
 
-    // Simula que el prestador acepta a los 6 segundos.
-    schedule(() => {
-      changeStatus(request.id, "accept", true);
-    }, PROVIDER_RESPONSE_DELAY);
+    // Al prestador le llega el aviso de solicitud nueva cuando entre.
+    addNotice({ userId: quote.provider_id, requestId: request.id, type: "incoming_services" });
 
     return request;
-  }, [draft, userId, quote, schedule, changeStatus]);
+  }, [draft, userId, quote, markInSession, addNotice]);
 
-  // Oculta una solicitud de la pestaña Servicios.
-  const closeRequest = useCallback((id: string) => {
-    setClosedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-  }, []);
-
-  // Acciones del prestador.
-  const acceptRequest = useCallback((id: string) => changeStatus(id, "accept", false), [changeStatus]);
-  const finishRequest = useCallback((id: string) => changeStatus(id, "finish", false), [changeStatus]);
-  // Si rechaza, vuelve a "Servicios vacío".
-  const rejectRequest = useCallback(
-    async (id: string) => {
-      await changeStatus(id, "reject", false);
-      closeRequest(id);
+  // Oculta una solicitud de la pestaña Servicios, solo para este usuario.
+  const closeRequest = useCallback(
+    (id: string) => {
+      if (!userId) return;
+      const key = `${userId}-${id}`;
+      setClosedIds((prev) => (prev.includes(key) ? prev : [...prev, key]));
     },
-    [changeStatus, closeRequest],
+    [userId],
   );
+
+  // Acciones del prestador (finalizar también lo puede hacer el cliente).
+  const acceptRequest = useCallback((id: string) => changeStatus(id, "accept"), [changeStatus]);
+  const rejectRequest = useCallback((id: string) => changeStatus(id, "reject"), [changeStatus]);
+  const finishRequest = useCallback((id: string) => changeStatus(id, "finish"), [changeStatus]);
 
   const getRating = useCallback(
     (requestId: string) => ratings.find((r) => r.service_request_id === requestId),
@@ -294,38 +319,7 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     ]);
   }, []);
 
-  // Simula que el prestador termina el servicio a los 12 segundos y avisa al cliente.
-  const simulateProviderFinish = useCallback(
-    (id: string) =>
-      schedule(() => {
-        changeStatus(id, "finish", true);
-      }, PROVIDER_FINISH_DELAY),
-    [schedule, changeStatus],
-  );
-
-  // Simula que el cliente califica al prestador con 4 estrellas a los 4 segundos.
-  const simulateClientRating = useCallback(
-    (id: string) =>
-      schedule(() => {
-        setRatings((prev) => {
-          if (prev.some((r) => r.service_request_id === id)) return prev;
-          const request = requestsRef.current.find((r) => r.id === id);
-          return [
-            ...prev,
-            {
-              id: `g${Date.now()}`,
-              service_request_id: id,
-              rated_user_id: request?.provider_id ?? "",
-              rating: 4,
-              comment: "Me gustó mucho el plan, fue muy puntual y amable. ¡Lo volvería a pedir!",
-            },
-          ];
-        });
-      }, CLIENT_RATING_DELAY),
-    [schedule],
-  );
-
-  // Pide al servidor los avisos de "solicitud nueva" del usuario y los muestra una sola vez.
+  // Pide al servidor los avisos de "solicitud nueva" que ya existían (data.mock) y los muestra una vez.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
@@ -340,16 +334,10 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
 
           schedule(() => {
             const request = requestsRef.current.find((r) => r.id === notification.service_request_id);
-            const client = request ? getUserById(request.client_id) : undefined;
-            const post = request ? getPostById(request.post_id) : undefined;
-            showNotification({
-              type: notification.type,
-              name: client?.name ?? "Cliente",
-              avatarUrl: client?.profile_picture ?? undefined,
-              tag: post?.tags[0],
-              href: `/requests/${notification.service_request_id}`,
-            });
-          }, INCOMING_REQUEST_DELAY);
+            // Si ya se aceptó o rechazó, el aviso ya no tiene sentido.
+            if (!request || request.status !== "pending") return;
+            showNotice(request, notification.type);
+          }, NOTICE_DELAY);
         });
       })
       .catch(() => {
@@ -359,9 +347,9 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     return () => {
       cancelled = true;
     };
-  }, [userId, schedule, showNotification, getUserById, getPostById]);
+  }, [userId, schedule, showNotice]);
 
-  const value: RequestsContextValue = {requests,loading,error,getRequest,currentRequest,getRole,draft,saveDraft,quote,quoteLoading,quoteError,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,closeRequest,getRating,getUserRating,addRating,simulateProviderFinish,simulateClientRating,};
+  const value: RequestsContextValue = {requests,loading,error,getRequest,currentRequest,getRole,draft,saveDraft,quote,quoteLoading,quoteError,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,closeRequest,getRating,getUserRating,addRating,};
 
   return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>;};
 
@@ -373,3 +361,4 @@ export const useRequests = () => {
   }
   return context;
 };
+

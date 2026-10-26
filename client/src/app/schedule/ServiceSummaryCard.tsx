@@ -1,5 +1,4 @@
 //tarjeta que resume servicion
-//precio y hora //servicio pedid 
 import { formatPrice } from "@/app/payment/formatPrice";
 import { formatHours } from "../requests/formatService";
 
