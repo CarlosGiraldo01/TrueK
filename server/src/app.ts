@@ -23,3 +23,5 @@ app.use('/requests', requestsRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/messages', messagesRouter);
 app.use('/notifications',  notificationsRouter);
+
+export default app;
