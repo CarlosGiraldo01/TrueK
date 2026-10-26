@@ -10,11 +10,13 @@ export default function CompleteProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Estados del form para guardar lo que ponga el usuario
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [ciudadZona, setCiudadZona] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tipoPerfil, setTipoPerfil] = useState<"client" | "provider">("client");
 
+  // Para mostrar la fotito antes de subirla de verdad
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -25,12 +27,14 @@ export default function CompleteProfilePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Aquí mandamos al usuario a la vista que le toca según si es cliente o prestador
     redirectUserByRole(tipoPerfil as UserRole, router);
   };
 
   return (
     <div className="relative min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#161615]">
       
+     
       <div 
         aria-hidden="true" 
         className="pointer-events-none absolute -top-12 -left-16 w-80 h-80 opacity-[0.12] rotate-[-20deg]"
@@ -75,6 +79,7 @@ export default function CompleteProfilePage() {
 
       <div className="relative z-10 w-full max-w-[360px] flex flex-col">
         
+        {/* Botón para volver atrás */}
         <button
           type="button"
           onClick={() => router.push("/register")}
@@ -109,6 +114,7 @@ export default function CompleteProfilePage() {
 
           <form onSubmit={handleSubmit} className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-4">
             
+           
             <div className="flex justify-center my-1">
               <input
                 ref={fileInputRef}
@@ -188,26 +194,12 @@ export default function CompleteProfilePage() {
                   value={descripcion}
                   onChange={(e) => setDescripcion(e.target.value)}
                   placeholder="Cuéntanos sobre ti..."
-                  className="w-full rounded-[12px] bg-[#363636] px-4 py-3 pr-9 text-sm text-white placeholder:text-[#8A8A8A] outline-none transition-all focus:ring-1.5 focus:ring-[#D3FC31]/60 resize-none"
+                  className="w-full rounded-[12px] bg-[#363636] px-4 py-3 text-sm text-white placeholder:text-[#8A8A8A] outline-none transition-all focus:ring-1.5 focus:ring-[#D3FC31]/60 resize-none"
                 />
-                <div className="pointer-events-none absolute right-3 top-3.5 text-[#8A8A8A]">
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
               </div>
             </div>
 
+            {/* Selector para elegir el rol de la cuenta */}
             <div className="flex flex-col">
               <label className="mb-2 text-sm font-medium text-white">
                 Tipo de perfil

@@ -1,4 +1,4 @@
-//paso 2: el archivo que acabamos de comentar, donde se revisa todo y se confirma.
+
 "use client";
 
 import { use } from "react";
@@ -12,7 +12,8 @@ import { formatDate, formatHours, formatTime } from "../../../requests/formatSer
 import { ScheduleProgress } from "../../ScheduleProgress";
 import { ServiceSummaryCard } from "../../ServiceSummaryCard";
 
-
+//página de confirmación de un servicio en Truek. 
+//Recopila los datos que el cliente ingresó al agendar, muestra el resumen del servicio y calcula el precio mediante el servidor
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -24,14 +25,14 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const ConfirmScreen = ({ postId }: { postId: string }) => {
   const router = useRouter();
-  const { draft, createRequest, getHourlyRate } = useRequests();
+  const { draft, createRequest, quote, quoteLoading, quoteError } = useRequests();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const post = getPostById(postId);
 
   if (!post) notFound();
 
-  // Opened directly without filling the form first.
+  
   if (!draft || draft.post_id !== postId) {
     return (
       <div className="flex min-h-dvh flex-col">
@@ -45,12 +46,25 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
     );
   }
 
+//verifica si el precio del servicio todavía se está calculando o si aún no está disponible
+  if (quoteLoading || !quote) {
+    return (
+      <div className="flex min-h-dvh flex-col">
+        <TopHeader title="Confirmar servicio" />
+        <main className="flex flex-1 items-center justify-center px-10 text-center">
+          <p className="text-sm text-truek-placeholder">{quoteError ?? "Calculando el precio..."}</p>
+        </main>
+        <NavBar activeId="inicio" />
+      </div>
+    );
+  }
+
   const provider = getUserById(post.user_id);
-  const pricePerHour = getHourlyRate(post.id);
-  const total = pricePerHour * draft.hours;
+  const pricePerHour = quote.price_per_hour;
+  const total = quote.total;
 
   const handleConfirm = () => {
-    const request = createRequest();
+    const request = createRequest();//ermite confirmar la solicitud usando
     if (request) router.replace(`/schedule/${postId}/success`);
   };
 

@@ -8,26 +8,10 @@ import { NavBar } from "@/components/ui/NavBar";
 import { usePosts } from "@/context/PostsContext";
 import { useSession } from "@/context/SessionContext";
 
-
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-/**
- * Componente de la pantalla 'Publicación' (Detalle del Truek).
- * 
- * Muestra toda la información de una experiencia o servicio ofrecido:
- * - Fotografía principal en gran formato.
- * - Nombre del prestador, edad y tiempo transcurrido desde la publicación.
- * - Píldoras con las categorías temáticas.
- * - Calificación con estrellas y ciudad/zona.
- * - Sección 'Sobre mí' con la descripción personal del prestador.
- * - Sección 'Qué ofrezco' con los detalles del intercambio o servicio.
- * - Sección 'Costo' con la tarifa formateada por hora ($X.XXX/h).
- * - Botón 'Contratar servicio' condicional:
- *   * Visible para Clientes (permite iniciar el proceso de contratación).
- *   * Oculto para Proveedores (un proveedor visualiza su oferta o publicaciones sin botón de contratación).
- */
 export default function PostDetailPage({ params }: PageProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -35,15 +19,8 @@ export default function PostDetailPage({ params }: PageProps) {
   const { getPostById } = usePosts();
   const { activeRole } = useSession();
 
-  /**
-   * Obtiene la publicación solicitada a partir de su ID.
-   */
   const post = getPostById(id);
   const isClient = activeRole === "client";
-
-  /**
-   * Identifica si la vista proviene de la creación inmediata de un truek (?created=true).
-   */
   const justCreated = searchParams.get("created") === "true";
 
   if (!post) {
@@ -63,11 +40,7 @@ export default function PostDetailPage({ params }: PageProps) {
     );
   }
 
-  /**
-   * Manejador del botón volver (<):
-   * - Si la publicación acaba de crearse, redirige al perfil para verla en la cuadrícula.
-   * - De lo contrario, regresa a la vista anterior del historial de navegación.
-   */
+  // Si lo acabamos de crear nos manda al perfil, si no pues a la página anterior
   const handleBack = () => {
     if (justCreated) {
       router.push("/profile");
@@ -76,39 +49,19 @@ export default function PostDetailPage({ params }: PageProps) {
     }
   };
 
-  /**
-   * Manejador para contratar servicio:
-   * Redirige al flujo de solicitud y pago reservado para el rol cliente.
-   */
   const handleHireService = () => {
     router.push("/schedule/" + post.id);
   };
 
-  /**
-   * Lógica de formateo de precio:
-   * Convierte valores numéricos a la nomenclatura de moneda local con formato $X.XXX/h.
-   */
-  let formattedPrice = "$5.000/h";
-  if (post.price) {
-    if (typeof post.price === "number") {
-      formattedPrice = "$" + post.price.toLocaleString("es-CO") + "/h";
-    } else {
-      const cleanNum = Number(String(post.price).replace(/\D/g, ""));
-      if (!isNaN(cleanNum) && cleanNum > 0) {
-        formattedPrice = "$" + cleanNum.toLocaleString("es-CO") + "/h";
-      } else {
-        formattedPrice = String(post.price) + "/h";
-      }
-    }
-  }
+  // Lógica de precio más natural y limpia
+  const formattedPrice = typeof post.price === "number"
+    ? `$${post.price.toLocaleString("es-CO")}/h`
+    : `${post.price || "$5.000"}/h`;
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#D3FC31] selection:text-black">
-      {/* 
-        =======================================================================
-        ENCABEZADO: '< Publicación'
-        =======================================================================
-      */}
+      
+      {/* Header simple */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#242423] bg-[#161615] px-4">
         <button
           type="button"
@@ -126,14 +79,11 @@ export default function PostDetailPage({ params }: PageProps) {
         <div className="size-10" />
       </header>
 
-      {/* 
-        =======================================================================
-        CONTENIDO DETALLADO DE LA EXPERIENCIA / PUBLICACIÓN
-        =======================================================================
-      */}
+      {/* Contenido del detalle */}
       <main className="flex-1 px-5 py-5 pb-28">
         <article className="flex flex-col gap-4">
-          {/* Imagen principal en gran formato con bordes redondeados */}
+          
+          {/* Fotito principal */}
           <div className="aspect-[16/11] w-full overflow-hidden rounded-[22px] bg-black shadow-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -143,7 +93,6 @@ export default function PostDetailPage({ params }: PageProps) {
             />
           </div>
 
-          {/* Fila: Nombre, edad y tiempo de publicación */}
           <div className="flex items-baseline justify-between gap-2 pt-1">
             <h2 className="text-xl font-bold text-white">{post.name}</h2>
             {post.published_ago && (
@@ -156,7 +105,7 @@ export default function PostDetailPage({ params }: PageProps) {
             <p className="-mt-3 text-xs font-semibold text-white/70">{post.age}</p>
           )}
 
-          {/* Categorías temáticas seleccionadas */}
+          {/* Tags */}
           <div className="flex flex-wrap gap-2">
             {post.tags.map((tag) => (
               <span
@@ -168,7 +117,7 @@ export default function PostDetailPage({ params }: PageProps) {
             ))}
           </div>
 
-          {/* Calificación en estrellas y Ubicación */}
+          {/* Rating y ubicación */}
           <div className="flex flex-col gap-1 pt-1">
             <div className="flex items-center gap-2">
               <StarRating value={post.rating ?? 4.7} size={16} />
@@ -179,7 +128,7 @@ export default function PostDetailPage({ params }: PageProps) {
             <p className="text-xs text-[#8A8A8A]">{post.location}</p>
           </div>
 
-          {/* Sección 'Sobre mí' */}
+          {/* Sobre mí */}
           <section className="flex flex-col gap-1 border-t border-[#242423] pt-3">
             <h3 className="text-sm font-bold text-white">Sobre mí</h3>
             <p className="text-xs leading-relaxed text-white/80">
@@ -187,7 +136,7 @@ export default function PostDetailPage({ params }: PageProps) {
             </p>
           </section>
 
-          {/* Sección 'Qué ofrezco' */}
+          {/* Qué ofrezco */}
           {post.offer && (
             <section className="flex flex-col gap-1 border-t border-[#242423] pt-3">
               <h3 className="text-sm font-bold text-white">Qué ofrezco</h3>
@@ -197,7 +146,7 @@ export default function PostDetailPage({ params }: PageProps) {
             </section>
           )}
 
-          {/* Sección 'Costo' */}
+          {/* Costo */}
           <section className="flex flex-col gap-1 border-t border-[#242423] pt-3">
             <h3 className="text-sm font-bold text-white">Costo</h3>
             <p className="text-sm font-bold text-truek-lime">
@@ -205,12 +154,7 @@ export default function PostDetailPage({ params }: PageProps) {
             </p>
           </section>
 
-          {/* 
-            ===================================================================
-            BOTÓN 'CONTRATAR SERVICIO' - EXCLUSIVO DEL CLIENTE
-            ===================================================================
-            El proveedor NO visualiza este botón al consultar publicaciones.
-          */}
+          {/* Botón de contratar (solo si es cliente) */}
           {isClient && (
             <div className="mt-3 pt-2">
               <button
@@ -225,7 +169,6 @@ export default function PostDetailPage({ params }: PageProps) {
         </article>
       </main>
 
-      {/* Menú inferior */}
       <NavBar activeId="inicio" />
     </div>
   );

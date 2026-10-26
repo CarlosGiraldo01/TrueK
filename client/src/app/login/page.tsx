@@ -10,19 +10,22 @@ export default function LoginPage() {
   const router = useRouter();
   const { user } = useSession();
 
+  // Guardamos lo que el usuario escribe en el form
   const [credentials, setCredentials] = useState({
     email: "",
     password: "",
   });
 
+  // Actualizar los datos conforme escriben
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setCredentials((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Manejar el login y mandar al usuario a su ruta según su rol
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Credenciales enviadas para login:", credentials);
+    console.log("Datos de acceso:", credentials);
     const roleToRedirect = user?.role ?? "client";
     redirectUserByRole(roleToRedirect, router);
   };
@@ -30,7 +33,7 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-dvh w-full flex items-center justify-center p-4 sm:p-6 overflow-hidden bg-[#161615]">
       
-      {/* Siluetas de fondo TrueK */}
+      {/* Logos de fondo decorativos */}
       <div 
         aria-hidden="true" 
         className="pointer-events-none absolute -top-12 -left-16 w-80 h-80 opacity-[0.12] rotate-[-20deg]"
@@ -73,10 +76,10 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* Contenedor central: Botón volver + Tarjeta modal */}
+      {/* Contenedor central */}
       <div className="relative z-10 w-full max-w-[360px] flex flex-col">
         
-        {/* Botón Volver circular color naranja con flecha negra */}
+        {/* Botón para regresar al inicio */}
         <button
           type="button"
           onClick={() => router.push("/")}
@@ -99,7 +102,7 @@ export default function LoginPage() {
           </svg>
         </button>
 
-        {/* Tarjeta modal: Iniciar sesión */}
+        {/* Tarjeta del formulario de login */}
         <div className="w-full rounded-[26px] sm:rounded-[28px] border border-[#FF5E1B] bg-[#0E0E0D] shadow-2xl overflow-hidden">
           
           <div className="pt-5 pb-4 text-center">
@@ -112,6 +115,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-4">
             
+            {/* Input Correo */}
             <div className="flex flex-col">
               <label
                 htmlFor="email"
@@ -135,6 +139,7 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Input Contraseña */}
             <div className="flex flex-col">
               <label
                 htmlFor="password"
@@ -155,6 +160,7 @@ export default function LoginPage() {
               />
             </div>
 
+            {/* Botón de enviar */}
             <button
               type="submit"
               className="mt-3 flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#FF5E1B] text-base font-bold text-black transition-all duration-150 hover:bg-[#f35210] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5E1B]"
@@ -162,6 +168,7 @@ export default function LoginPage() {
               Continuar
             </button>
 
+            {/* Enlace para ir al registro */}
             <div className="mt-1 text-center">
               <p className="text-[13px] text-[#D1D5DB]">
                 ¿No tienes una cuenta?{" "}

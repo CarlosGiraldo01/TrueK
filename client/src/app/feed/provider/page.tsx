@@ -4,12 +4,7 @@ import { useEffect } from "react";
 import { FeedView } from "@/components/feed/FeedView";
 import { useSession } from "@/context/SessionContext";
 
-/**
- * Pantalla de Feed Principal en Rol Proveedor (Provider):
- * - El usuario tiene permisos para ofrecer servicios y generar contenido.
- * - Elemento visual clave: Botón superior con icono (+) para crear publicaciones.
- * - Acción: Redirige a /feed/create (formulario de publicación).
- */
+// Vista del feed para el prestador (aquí sí forzamos el rol para que salga todo lo de proveedor)
 export default function ProviderFeedPage() {
   const { setActiveRole, activeRole } = useSession();
 

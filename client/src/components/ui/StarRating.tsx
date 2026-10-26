@@ -1,7 +1,6 @@
 "use client";
 
 import { StarIcon } from "@heroicons/react/24/solid";
-import { cn } from "./cn";
 
 interface StarRatingProps {
   value: number;
@@ -11,18 +10,19 @@ interface StarRatingProps {
   className?: string;
 }
 
+// Componente para mostrar u opinar con estrellas
 export function StarRating({
   value,
   onChange,
   size = 16,
   showValue = false,
-  className,
+  className = "",
 }: StarRatingProps) {
   const filled = Math.round(value);
   const interactive = typeof onChange === "function";
 
   return (
-    <div className={cn("flex items-center", className)}>
+    <div className={`flex items-center ${className}`}>
       <div className="flex items-center" style={{ gap: Math.round(size * 0.2) }}>
         {[1, 2, 3, 4, 5].map((n) => {
           const star = (

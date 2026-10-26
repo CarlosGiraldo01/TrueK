@@ -9,14 +9,14 @@ import { ActiveServiceView } from "./ActiveServiceView";
 import { ClientRequestView } from "./ClientRequetView";
 import { FinishedServiceView } from "./FinishedServiceview";
 import { ProviderRequestView } from "./ProviderRequestView";
-
+//pagina padre donde decide que mostrar
 const RequestDetail = ({ requestId }: { requestId: string }) => {
   const { getRequest, getRole } = useRequests();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const request = getRequest(requestId);
   const post = request ? getPostById(request.post_id) : undefined;
-  // Only the client and the provider of the request can see it.
+  // recopilar la información de las solicitudes, los usuarios y las publicaciones
   const role = request ? getRole(request) : null;
 
   if (!request || !post || !role) {
@@ -34,14 +34,9 @@ const RequestDetail = ({ requestId }: { requestId: string }) => {
   }
 
   const client = getUserById(request.client_id);
-  switch (request.status) {
-    case "accepted":
-    case "active":
-      return <ActiveServiceView request={request} person={client} role="provider" imageUrl={imageUrl} />;
-    case "finished":
-      return <FinishedServiceView request={request} client={client} imageUrl={imageUrl} />;
-    default:
-      return <ProviderRequestView request={request} client={client} imageUrl={imageUrl} />;
+  switch (request.status) {case "accepted": case "active":return <ActiveServiceView request={request} person={client} role="provider" imageUrl={imageUrl} />;
+    case "finished":return <FinishedServiceView request={request} client={client} imageUrl={imageUrl} />;
+    default:return <ProviderRequestView request={request} client={client} imageUrl={imageUrl} />;
   }
 };
 

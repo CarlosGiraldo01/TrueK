@@ -1,7 +1,6 @@
 //barra de progreso 
 const STEPS = 3;
 
-// Orange line under the header: step 1 Agendar, 2 Confirmar, 3 Pedido.
 export function ScheduleProgress({ step }: { step: 1 | 2 | 3 }) {
   return (
     <div className="px-5 pt-4" aria-label={`Paso ${step} de ${STEPS}`}>

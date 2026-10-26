@@ -8,18 +8,7 @@ import { NavBar } from "@/components/ui/NavBar";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 
-/**
- * Componente de la pantalla principal de 'Perfil'.
- * 
- * Adapta su presentación según el rol del usuario activo:
- * - Rol Proveedor ('provider'): Presenta foto con botón lápiz de edición, nombre,
- *   badge 'Prestador', calificación con estrellas, edad, ubicación, descripción,
- *   un divisor con el logotipo de TrueK y una cuadrícula (grid de 2 columnas) con
- *   todos los trueks creados por el prestador.
- * - Rol Cliente ('client'): Presenta foto con botón lápiz de edición, nombre,
- *   badge 'Cliente', edad, ubicación, descripción y el contador 'Cuántos Trueks ha tomado'.
- *   No muestra el divisor de TrueK ni la cuadrícula de publicaciones.
- */
+// Vista de perfil del usuario (cambia según si es proveedor o cliente)
 export default function ProfilePage() {
   const router = useRouter();
   const { user, activeRole } = useSession();
@@ -27,16 +16,10 @@ export default function ProfilePage() {
 
   const isProvider = activeRole === "provider";
 
-  /**
-   * Obtiene la lista de publicaciones pertenecientes al usuario actual.
-   * Si es proveedor (por ejemplo Valentina Arias id: 'u2'), retorna sus trueks creados.
-   */
+  // Publicaciones creadas por este usuario si es proveedor
   const providerPosts = user ? getPostsByUserId(user.id) : [];
 
-  /**
-   * Manejador del botón volver (<):
-   * Regresa al feed principal correspondiente al rol del usuario.
-   */
+  // Volver al feed del rol actual
   const handleBack = () => {
     if (isProvider) {
       router.push("/feed/provider");
@@ -45,18 +28,10 @@ export default function ProfilePage() {
     }
   };
 
-  /**
-   * Redirige al formulario de edición de perfil (/profile/edit).
-   */
   const handleEditProfile = () => {
     router.push("/profile/edit");
   };
 
-  /**
-   * Navega a la vista de detalle de una publicación específica.
-   * 
-   * @param postId - Identificador único de la publicación seleccionada.
-   */
   const handleSeePost = (postId: string) => {
     router.push("/post/" + postId);
   };
@@ -77,11 +52,8 @@ export default function ProfilePage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#D3FC31] selection:text-black">
-      {/* 
-        =======================================================================
-        ENCABEZADO: '< Perfil'
-        =======================================================================
-      */}
+      
+      {/* Header simple con botón de regreso */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#242423] bg-[#161615] px-4">
         <button
           type="button"
@@ -99,14 +71,11 @@ export default function ProfilePage() {
         <div className="size-10" />
       </header>
 
-      {/* 
-        =======================================================================
-        CONTENIDO PRINCIPAL DEL PERFIL
-        =======================================================================
-      */}
+      {/* Contenido principal */}
       <main className="flex-1 px-5 py-6 pb-28">
         <div className="flex flex-col items-center text-center">
-          {/* Foto de perfil circular con botón de editar (icono lápiz) */}
+          
+          {/* Avatar con botón para editar */}
           <div className="relative mb-3 flex items-center justify-center">
             <div className="size-24 overflow-hidden rounded-full border-2 border-[#3A3A39] shadow-xl bg-black">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -116,7 +85,6 @@ export default function ProfilePage() {
                 className="h-full w-full object-cover"
               />
             </div>
-            {/* Botón flotante para acceder a la edición de perfil */}
             <button
               type="button"
               onClick={handleEditProfile}
@@ -128,17 +96,16 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* Nombre del usuario */}
           <h2 className="text-lg font-bold text-white">{user.name}</h2>
 
-          {/* Badge estilizado de Rol: 'Prestador' o 'Cliente' en verde TrueK */}
+          {/* Badge de rol */}
           <div className="mt-1.5 flex items-center justify-center">
             <span className="rounded-full bg-[#132816] border border-[#1C4223] px-3.5 py-0.5 text-xs font-bold text-[#4ADE80] shadow-sm">
               {isProvider ? "Prestador" : "Cliente"}
             </span>
           </div>
 
-          {/* Calificación por estrellas (exclusivo para proveedores en su perfil) */}
+          {/* Estrellas (solo si es proveedor) */}
           {isProvider && (
             <div className="mt-2 flex items-center justify-center gap-1.5">
               <StarRating value={user.rating ?? 4.7} size={15} />
@@ -148,12 +115,11 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Subtítulo: Edad y Ubicación */}
           <p className="mt-1.5 text-xs font-medium text-[#8A8A8A]">
             {user.age} años · {user.location}
           </p>
 
-          {/* Tarjeta de Descripción personal */}
+          {/* Tarjeta de descripción */}
           <div className="mt-4 w-full rounded-[18px] border border-[#2E2E2E] bg-[#1B1B1B] p-4 text-left shadow-md">
             <h3 className="text-xs font-bold uppercase tracking-wider text-white">
               Descripción
@@ -163,11 +129,7 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {/* 
-            ===================================================================
-            SECCIÓN CLIENTE: CUÁNTOS TRUEKS HA TOMADO
-            ===================================================================
-          */}
+          {/* Sección de cliente: Trueks tomados */}
           {!isProvider && (
             <div className="mt-4 w-full rounded-[18px] border border-[#2E2E2E] bg-[#1B1B1B] p-4 text-left shadow-md">
               <h3 className="text-xs font-bold uppercase tracking-wider text-white">
@@ -179,21 +141,15 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* 
-            ===================================================================
-            SECCIÓN PROVEEDOR: TRUEKS QUE CREA (EN CUADRÍCULA DE 2 COLUMNAS)
-            ===================================================================
-          */}
+          {/* Sección de proveedor: Cuadrícula de sus publicaciones */}
           {isProvider && (
             <div className="mt-5 w-full flex flex-col gap-4">
-              {/* Separador con logotipo oficial horizontal TrueK */}
               <div className="flex items-center justify-center gap-3 py-1">
                 <div className="h-[1px] flex-1 bg-[#2E2E2E]" />
                 <Logo variant="horizontal" height={18} className="opacity-80" />
                 <div className="h-[1px] flex-1 bg-[#2E2E2E]" />
               </div>
 
-              {/* Cuadrícula de 2 columnas de las publicaciones guardadas del proveedor */}
               {providerPosts.length > 0 ? (
                 <div className="grid grid-cols-2 gap-3.5">
                   {providerPosts.map((post) => (
@@ -202,7 +158,6 @@ export default function ProfilePage() {
                       onClick={() => handleSeePost(post.id)}
                       className="group flex flex-col overflow-hidden rounded-[18px] border border-[#2E2E2E] bg-[#1B1B1B] p-2.5 text-left transition-all hover:border-[#3E3E3E] hover:scale-[1.02] active:scale-[0.98] cursor-pointer shadow-md"
                     >
-                      {/* Imagen con bordes redondeados */}
                       <div className="aspect-[4/3] w-full overflow-hidden rounded-[12px] bg-black">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -212,12 +167,10 @@ export default function ProfilePage() {
                         />
                       </div>
 
-                      {/* Nombre del autor de la publicación */}
                       <h4 className="mt-2 text-xs font-bold text-white truncate">
                         {post.name}
                       </h4>
 
-                      {/* Etiquetas de categoría seleccionadas */}
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {post.tags.slice(0, 2).map((tag) => (
                           <span
@@ -229,7 +182,6 @@ export default function ProfilePage() {
                         ))}
                       </div>
 
-                      {/* Calificación por estrellas */}
                       <div className="mt-1 flex items-center">
                         <StarRating value={post.rating ?? 4.7} size={11} />
                       </div>
@@ -255,7 +207,7 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* Menú inferior de navegación con la pestaña 'Perfil' activa */}
+      {/* Menú inferior */}
       <NavBar activeId="perfil" />
     </div>
   );

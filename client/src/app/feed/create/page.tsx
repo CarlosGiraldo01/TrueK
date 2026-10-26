@@ -7,38 +7,21 @@ import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { NavBar } from "@/components/ui/NavBar";
 
-/**
- * Componente de la pantalla 'Crear un truek'.
- * 
- * Permite a los usuarios con rol de proveedor publicar nuevas ofertas de truek o servicios.
- * Recolecta la fotografía de la experiencia, ciudad y zona, biografía corta ('Sobre mí'),
- * detalle de la oferta ('¿Qué vas a ofrecer?'), hasta 3 categorías temáticas y tarifa por hora.
- * 
- * Al completarse el guardado, añade el nuevo post al contexto global y redirige de inmediato
- * a la pantalla de detalle de la publicación recién creada para visualizar exactamente los
- * datos escritos por el usuario.
- */
+// Vista para armar y publicar un nuevo truek (rol proveedor)
 export default function CreatePostPage() {
   const router = useRouter();
   const { user, activeRole, setActiveRole } = useSession();
   const { addPost, tags } = usePosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Efecto de sincronización de rol:
-   * Garantiza que el usuario activo se encuentre en modo 'provider' al estar en esta pantalla,
-   * permitiendo el flujo continuo de publicación sin bloqueos inesperados.
-   */
+  // Asegurarnos de que el usuario esté en modo provider
   useEffect(() => {
     if (activeRole !== "provider") {
       setActiveRole("provider");
     }
   }, [activeRole, setActiveRole]);
 
-  /**
-   * Estado de los campos de texto del formulario:
-   * Inician limpios para que la publicación resultante muestre estrictamente lo escrito.
-   */
+  // Datos principales del formulario
   const [formData, setFormData] = useState({
     location: "",
     about: "",
@@ -46,33 +29,16 @@ export default function CreatePostPage() {
     price: "",
   });
 
-  /**
-   * Lista de categorías temáticas seleccionadas por el usuario (máximo 3 etiquetas).
-   */
+  // Categorías elegidas (máximo 3)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  /**
-   * Imagen en formato Data URL (Base64) lista para almacenar de forma persistente.
-   */
+  // Imagen en base64 para que no se pierda al recargar
   const [imagePreview, setImagePreview] = useState<string>("");
 
-  /**
-   * Indicador de carga mientras se procesa y persiste la nueva publicación.
-   */
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  /**
-   * Mensaje informativo en caso de validaciones insatisfechas en el formulario.
-   */
   const [errorMessage, setErrorMessage] = useState("");
 
-  /**
-   * Alterna la selección de una etiqueta de categoría:
-   * - Si ya está seleccionada, la remueve de la lista.
-   * - Si no está seleccionada, valida que no se supere el límite de 3 categorías.
-   * 
-   * @param tag - Nombre de la categoría a seleccionar o deseleccionar.
-   */
+  // Manejo de selección/deselección de tags
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) => {
       if (prev.includes(tag)) {
@@ -85,13 +51,7 @@ export default function CreatePostPage() {
     });
   };
 
-  /**
-   * Manejador de selección de imagen local:
-   * Convierte el archivo seleccionado por el usuario a una cadena Base64 mediante FileReader.
-   * Esto garantiza que la imagen persista en localStorage y no expire al navegar o recargar.
-   * 
-   * @param e - Evento de cambio del input de tipo file.
-   */
+  // Convertir fotito a base64
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -105,21 +65,11 @@ export default function CreatePostPage() {
     }
   };
 
-  /**
-   * Manejador de envío del formulario de creación:
-   * 1. Valida que todos los campos obligatorios hayan sido diligenciados.
-   * 2. Limpia y procesa el valor numérico de la tarifa por hora.
-   * 3. Crea la publicación asociada al proveedor actual con la información exacta ingresada.
-   * 4. Guarda la publicación en el contexto y almacenamiento local.
-   * 5. Redirige directamente al detalle de la publicación recién creada (/post/[id]?created=true).
-   * 
-   * @param e - Evento de envío del formulario.
-   */
+  // Validar y mandar el post al contexto global
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
 
-    // Validación de campos obligatorios
     if (!formData.location.trim()) {
       setErrorMessage("Por favor ingresa la ciudad y zona.");
       return;
@@ -139,14 +89,12 @@ export default function CreatePostPage() {
 
     setIsSubmitting(true);
 
-    // Procesamiento del precio numérico ingresado
     const cleanPrice = formData.price.trim();
     const priceNum = Number(cleanPrice.replace(/\D/g, "")) || 5000;
     const authorId = user?.id ?? "u2";
     const authorName = user?.name ?? "Valentina Arias";
     const authorAge = user?.age ? (user.age + " años") : "24 años";
 
-    // Registro de la nueva publicación con la información ingresada por el usuario
     const newPost = addPost({
       user_id: authorId,
       name: authorName,
@@ -165,17 +113,14 @@ export default function CreatePostPage() {
 
     setIsSubmitting(false);
 
-    // Redirección inmediata a la vista detallada de la publicación recién creada
+    // Redirigir directo al detalle del post recién creado
     router.push("/post/" + newPost.id + "?created=true");
   };
 
   return (
     <div className="flex min-h-dvh flex-col bg-[#161615] text-white selection:bg-[#FF5E1B] selection:text-black">
-      {/* 
-        =======================================================================
-        BARRA SUPERIOR CON BOTÓN VOLVER Y TÍTULO: '< Crear un truek'
-        =======================================================================
-      */}
+      
+      {/* Barra superior con botón para devolverse */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-[#242423] bg-[#161615] px-4">
         <button
           type="button"
@@ -193,14 +138,11 @@ export default function CreatePostPage() {
         <div className="size-10" />
       </header>
 
-      {/* 
-        =======================================================================
-        FORMULARIO DE CREACIÓN DE PUBLICACIÓN
-        =======================================================================
-      */}
+      {/* Formulario principal */}
       <main className="flex-1 px-5 py-5 pb-28">
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* 1. Recuadro interactivo para cargar imagen */}
+          
+          {/* Carga de foto */}
           <div className="flex flex-col gap-1.5">
             <input
               ref={fileInputRef}
@@ -239,7 +181,7 @@ export default function CreatePostPage() {
             </button>
           </div>
 
-          {/* 2. Campo: Ciudad y zona */}
+          {/* Input Ciudad y zona */}
           <div className="flex flex-col gap-1">
             <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
               Ciudad y zona
@@ -255,7 +197,7 @@ export default function CreatePostPage() {
             />
           </div>
 
-          {/* 3. Campo: Sobre mí */}
+          {/* Input Sobre mí */}
           <div className="flex flex-col gap-1">
             <label htmlFor="about" className="text-xs font-medium text-[#8A8A8A]">
               Sobre mí
@@ -271,7 +213,7 @@ export default function CreatePostPage() {
             />
           </div>
 
-          {/* 4. Campo: ¿Qué vas a ofrecer? */}
+          {/* Textarea Oferta */}
           <div className="flex flex-col gap-1">
             <label htmlFor="offer" className="text-xs font-medium text-[#8A8A8A]">
               ¿Qué vas a ofrecer?
@@ -287,7 +229,7 @@ export default function CreatePostPage() {
             />
           </div>
 
-          {/* 5. Campo: Categoría del servicio */}
+          {/* Selección de categorías (tags) */}
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-medium text-[#8A8A8A]">
@@ -319,7 +261,7 @@ export default function CreatePostPage() {
             </div>
           </div>
 
-          {/* 6. Campo: ¿Cuánto cobrarás por hora? */}
+          {/* Input Precio por hora */}
           <div className="flex flex-col gap-1">
             <label htmlFor="price" className="text-xs font-medium text-[#8A8A8A]">
               ¿Cuánto cobrarás por hora?
@@ -350,7 +292,7 @@ export default function CreatePostPage() {
         </form>
       </main>
 
-      {/* Menú inferior de navegación */}
+      {/* Menú inferior */}
       <NavBar activeId="inicio" />
     </div>
   );

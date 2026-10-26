@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button, StarRating } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
@@ -16,18 +15,9 @@ interface Props {
 // "Servicio finalizado": esto es lo que ve el trabajador cuando ya terminó,
 export function FinishedServiceView({ request, client, imageUrl }: Props) {
   const router = useRouter();//calificacion,cierra el pedido,simulacion de tiempo de espera 
-  const { getRating, closeRequest, simulateClientRating } = useRequests();
+  const { getRating, closeRequest } = useRequests();
+  // La calificación la manda el cliente desde su pantalla de "Calificación".
   const rating = getRating(request.id);
-  const hasRating = !!rating;//calificacion hecha por el clienet 
-//se pregunta si ya hay calificacion
-  // Simulation: a few seconds later the client sends the rating.
-  useEffect(() => {
-     // Si ya hay calificación, no hace falta hacer de cuenta. Nos salimos.
-    if (hasRating) return;
-    //simula un tiempo
-    return simulateClientRating(request.id);
-    //lo revisa 
-  }, [hasRating, request.id, simulateClientRating]);
 // Esto pasa cuando el trabajador aprieta el botón "Finalizar":
   const handleFinish = () => {
     closeRequest(request.id);

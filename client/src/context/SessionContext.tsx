@@ -4,44 +4,29 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useUsers } from "./UsersContext";
 import type { User, UserRole } from "@/types";
 
-/**
- * Interfaz de valores y métodos expuestos por el contexto de sesión de TrueK.
- */
 interface SessionContextValue {
-  /** Usuario actualmente autenticado */
   user: User | null;
-  /** Rol activo del usuario ('provider' o 'client') */
   activeRole: UserRole;
-  /** Conmuta explícitamente el rol activo sincronizando el usuario representativo */
   setActiveRole: (role: UserRole) => void;
-  /** Alterna rápidamente entre rol de proveedor y cliente */
   switchRole: () => void;
-  /** Actualiza los datos del usuario activo y los persiste en localStorage */
   updateUser: (updatedData: Partial<User>) => void;
-  /** Inicia sesión con un ID de usuario */
   login: (userId: string) => void;
-  /** Cierra la sesión activa y limpia el almacenamiento local */
   logout: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-// Usuario con el que se abre la app la primera vez (Valentina, proveedora)
+// Usuario por defecto al abrir la app por primera vez (Valentina)
 const DEFAULT_USER_ID = "u2";
 
 const SESSION_USER_KEY = "truek_session_user_id";
 const SESSION_ROLE_KEY = "truek_session_active_role";
 
-/**
- * Proveedor de contexto de sesión:
- * Administra el usuario activo, su rol en la aplicación y la persistencia
- * duradera en el navegador mediante localStorage.
- */
+// Proveedor para manejar la sesión y el rol del usuario actual
 export function SessionProvider({ children }: { children: ReactNode }) {
-  // Los usuarios vienen del servidor a través de UsersContext
   const { getUserById, updateUser } = useUsers();
 
-  // Rol activo forzado o almacenado
+  // Rol activo guardado en localStorage
   const [overrideRole, setOverrideRole] = useState<UserRole | null>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -54,7 +39,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return null;
   });
 
-  // ID del usuario autenticado en la sesión actual
+  // ID del usuario logueado actualmente
   const [userId, setUserId] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       try {
@@ -67,10 +52,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return DEFAULT_USER_ID;
   });
 
-  /**
-   * Efecto de sincronización con localStorage:
-   * Almacena o remueve las claves de sesión cada vez que cambian el usuario o el rol.
-   */
+  // Guardar sesión en localStorage cuando cambie el usuario o el rol
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -90,17 +72,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, overrideRole]);
 
-  // Instancia del usuario actual, buscada entre los usuarios del servidor
   const user = userId ? (getUserById(userId) ?? null) : null;
   const activeRole: UserRole = overrideRole ?? user?.role ?? "client";
 
-  /**
-   * Conmuta el rol activo y vincula automáticamente el usuario representativo:
-   * - 'provider': Asigna a Valentina Arias (id: 'u2', Prestador).
-   * - 'client': Asigna a Camila restrepo (id: 'u3', Cliente).
-   *
-   * @param role - Rol a activar.
-   */
+  // Cambiar de rol y asignar el usuario representativo (u2 para proveedor, u3 para cliente)
   const handleSetRole = (role: UserRole) => {
     setOverrideRole(role);
     if (role === "provider") {
@@ -110,11 +85,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  /**
-   * Inicia sesión con el usuario correspondiente al ID provisto.
-   *
-   * @param id - Identificador del usuario.
-   */
+  // Iniciar sesión con un ID específico
   const handleLogin = (id: string) => {
     setUserId(id);
     const targetUser = getUserById(id);
@@ -125,9 +96,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  /**
-   * Cierra la sesión activa y purga las claves de localStorage.
-   */
+  // Cerrar sesión y limpiar el almacenamiento
   const handleLogout = () => {
     setUserId(null);
     setOverrideRole(null);
@@ -137,22 +106,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  /**
-   * Alterna entre el rol de proveedor y cliente.
-   */
+  // Cambiar rápido entre proveedor y cliente
   const handleSwitchRole = () => {
     const nextRole: UserRole = activeRole === "provider" ? "client" : "provider";
     handleSetRole(nextRole);
   };
 
-  /**
-   * Actualiza los datos personales del usuario actual (UsersContext los guarda).
-   *
-   * @param updatedData - Objeto parcial con las propiedades modificadas del usuario.
-   */
+  // Actualizar datos del usuario actual
   const handleUpdateUser = (updatedData: Partial<User>) => {
     if (!userId) return;
-
     updateUser(userId, updatedData);
   };
 
@@ -171,9 +133,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * Hook para consumir los métodos y valores de SessionContext.
- */
 export function useSession() {
   const ctx = useContext(SessionContext);
   if (!ctx) throw new Error("useSession must be used inside SessionProvider");

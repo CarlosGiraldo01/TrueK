@@ -18,11 +18,8 @@ export function ClientRequestView({ request, provider, imageUrl }: Props) {
   const { closeRequest } = useRequests();//se pide y se cierra
   const providerName = provider?.name ?? "El prestador";
 //condicion de que si se rechaza 
-  if (request.status === "rejected") {
-    const handleSearch = () => {//se cierra la peticion 
-      closeRequest(request.id);
-      router.push("/search");
-    };
+  if (request.status === "rejected") {const handleSearch = () => {closeRequest(request.id);
+      router.push("/search");};
     //se dibuja la tarjeta 
     return (
       <ServiceDetailCard person={provider} request={request} imageUrl={imageUrl} badge={<StatusBadge label="Rechazado" tone="orange" />}>

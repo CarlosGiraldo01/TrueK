@@ -4,7 +4,8 @@ import { ratingsService } from "./ratings.service";
 export const getRatings = async (_req: Request, res: Response) => {
   res.json(await ratingsService.getAll());
 };
-
+//Se conecta con ratingsService para obtener todas las calificaciones, 
+// buscar una calificación específica por su ID y consultar los promedios de calificación de los usuarios.
 export const getRatingById = async (req: Request, res: Response) => {
     const id = String(req.params.id);
     const item = await ratingsService.getById(id);
@@ -15,4 +16,8 @@ export const getRatingById = async (req: Request, res: Response) => {
     }
 
     res.json(item);
+};
+// GET /ratings/averages
+export const getRatingAverages = async (_req: Request, res: Response) => {
+  res.json(await ratingsService.getAverages());
 };
