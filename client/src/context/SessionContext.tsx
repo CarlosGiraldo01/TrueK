@@ -17,7 +17,7 @@ interface SessionContextValue {
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 // Usuario por defecto al abrir la app por primera vez (Valentina)
-const DEFAULT_USER_ID = "u2";
+const DEFAULT_USER_ID = "122baf6d-1d30-44ee-8ee1-77a7695d4ff1";
 
 const SESSION_USER_KEY = "truek_session_user_id";
 const SESSION_ROLE_KEY = "truek_session_active_role";
@@ -79,9 +79,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const handleSetRole = (role: UserRole) => {
     setOverrideRole(role);
     if (role === "provider") {
-      setUserId("u2");
+      setUserId("122baf6d-1d30-44ee-8ee1-77a7695d4ff1");
     } else {
-      setUserId("u3");
+      setUserId("744da244-6cad-4f07-afca-68dde5c7fb3b");
     }
   };
 
