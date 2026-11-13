@@ -3,5 +3,5 @@ export interface Rating {
   service_request_id: string;
   rated_user_id: string;
   rating: 1 | 2 | 3 | 4 | 5;
-  comment: string;  
+  comment: string | null;
 }

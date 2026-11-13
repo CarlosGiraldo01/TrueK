@@ -11,6 +11,11 @@ mock.module("../../src/features/ratings/ratings.repository", {
   exports: { ratingsRepository },
 });
 
+// ratings.service imports requestsService; stub it so the real repositories are never loaded.
+mock.module("../../src/features/requests/requests.service", {
+  exports: { requestsService: { getById: async () => undefined } },
+});
+
 let ratingsService: typeof import("../../src/features/ratings/ratings.service").ratingsService;
 
 before(async () => {

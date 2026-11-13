@@ -52,7 +52,7 @@ interface RequestsContextValue {
   closeRequest: (id: string) => void;
   getRating: (requestId: string) => Rating | undefined;
   getUserRating: (userId: string) => number;
-  addRating: (requestId: string, rating: Rating["rating"], comment: string) => void;
+  addRating: (requestId: string, rating: Rating["rating"], comment: string) => Promise<Rating>;
 }
 
 const RequestsContext = createContext<RequestsContextValue | null>(null);
@@ -310,14 +310,31 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     [ratings],
   );
 
-  // Guarda la calificación del cliente al prestador (reemplaza si ya existía).
-  const addRating = useCallback((requestId: string, rating: Rating["rating"], comment: string) => {
-    const request = requestsRef.current.find((r) => r.id === requestId);
-    setRatings((prev) => [
-      ...prev.filter((r) => r.service_request_id !== requestId),
-      { id: `g${Date.now()}`, service_request_id: requestId, rated_user_id: request?.provider_id ?? "", rating, comment },
-    ]);
-  }, []);
+  // Envía la calificación al servidor; los errores se propagan a quien llama.
+  const addRating = useCallback(
+    async (requestId: string, rating: Rating["rating"], comment: string): Promise<Rating> => {
+      if (!userId) throw new Error("Debes iniciar sesión para calificar");
+
+      const res = await api.post<Rating>("/ratings", {
+        user_id: userId,
+        service_request_id: requestId,
+        rating,
+        comment,
+      });
+      const created = res.data;
+      setRatings((prev) => [...prev.filter((r) => r.id !== created.id), created]);
+
+      // El promedio lo calcula el servidor; si falla el refresco se mantiene el anterior.
+      try {
+        const averagesRes = await api.get<Record<string, number>>("/ratings/averages");
+        setAverages(averagesRes.data);
+      } catch {
+        // La calificación ya se guardó; no se muestra error por el promedio.
+      }
+      return created;
+    },
+    [userId],
+  );
 
   // Pide al servidor los avisos de "solicitud nueva" que ya existían (data.mock) y los muestra una vez.
   useEffect(() => {
