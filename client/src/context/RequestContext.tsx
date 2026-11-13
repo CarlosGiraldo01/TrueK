@@ -44,7 +44,7 @@ interface RequestsContextValue {
   quote: Quote | null; // Precio que calculó el servidor para el formulario.
   quoteLoading: boolean;
   quoteError: string | null;
-  createRequest: () => ServiceRequest | null;
+  createRequest: () => Promise<ServiceRequest>;
   lastCreatedId: string | null;
   acceptRequest: (id: string) => Promise<void>;
   rejectRequest: (id: string) => Promise<void>;
@@ -261,34 +261,34 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   }, []);
 
   // Crea la solicitud con el formulario y el precio que dio el servidor.
-  const createRequest = useCallback(() => {
-    if (!draft || !userId || !quote) return null;
+  // El precio y el aviso al prestador los crea el servidor; los errores se propagan a quien llama.
+  const createRequest = useCallback(async (): Promise<ServiceRequest> => {
+    if (!userId) throw new Error("Debes iniciar sesión para solicitar un servicio");
+    if (!draft) throw new Error("Primero completa los datos del servicio");
 
-    const request: ServiceRequest = {
-      id: `r${Date.now()}`,
+    // El borrador no tiene zona horaria: se interpreta en la hora local del navegador y se envía en UTC.
+    const meetingDate = new Date(`${draft.date}T${draft.time}`);
+    if (Number.isNaN(meetingDate.getTime())) throw new Error("La fecha u hora del servicio no es válida");
+
+    const res = await api.post<ServiceRequest>("/requests", {
+      user_id: userId,
       post_id: draft.post_id,
-      client_id: userId,
-      provider_id: quote.provider_id,
       meeting_address: draft.meeting_address,
-      meeting_date: `${draft.date}T${draft.time}`,
+      meeting_date: meetingDate.toISOString(),
       hours: draft.hours,
-      status: "pending",
       request_image: draft.request_image,
-      payment_confirmed: false,
-      price: quote.total,
-    };
-    setRequests((prev) => [request, ...prev]);
-    requestsRef.current = [request, ...requestsRef.current];
-    markInSession(request.id);
-    setLastCreatedId(request.id);
+    });
+    const created = res.data;
+
+    setRequests((prev) => [created, ...prev.filter((r) => r.id !== created.id)]);
+    requestsRef.current = [created, ...requestsRef.current.filter((r) => r.id !== created.id)];
+    markInSession(created.id);
+    setLastCreatedId(created.id);
     setDraft(null);
     setQuote(null);
 
-    // Al prestador le llega el aviso de solicitud nueva cuando entre.
-    addNotice({ userId: quote.provider_id, requestId: request.id, type: "incoming_services" });
-
-    return request;
-  }, [draft, userId, quote, markInSession, addNotice]);
+    return created;
+  }, [draft, userId, markInSession]);
 
   // Oculta una solicitud de la pestaña Servicios, solo para este usuario.
   const closeRequest = useCallback(

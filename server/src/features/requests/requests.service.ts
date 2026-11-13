@@ -1,7 +1,9 @@
 import { requestsRepository } from "./requests.repository";
+import Boom from "@hapi/boom";
 import { postsRepository } from "../posts/posts.repository";
+import { uploadsService } from "../uploads/uploads.service";
 import type { NotificationType } from "../notifications/notifications.types";
-import type {Quote,RequestAction,RequesttWithProvider as RequestWithProvider,ServiceRequest,ServiceStatus,Transition,} from "./requests.types";
+import type {CreateRequestInput,Quote,RequestAction,RequesttWithProvider as RequestWithProvider,ServiceRequest,ServiceStatus,Transition,} from "./requests.types";
 
 // Precio por hora si la publicacion no tiene uno
 const DEFAULT_PRICE_PER_HOUR = 10000;
@@ -63,20 +65,59 @@ const getCurrent = async (userId: string): Promise<RequestWithProvider | null> =
   return visible[0];
 };
 
+// Precio por hora de la publicacion y total; lo comparten la cotizacion y la creacion
+const computePricing = (post: { price?: number | null }, hours: number): { pricePerHour: number; total: number } => {
+  const pricePerHour = post.price ?? DEFAULT_PRICE_PER_HOUR;
+  return { pricePerHour, total: pricePerHour * hours };
+};
+
 // Calcula cuanto cuesta el servicio segun las horas
 const getQuote = async (postId: string, hours: number): Promise<Quote | undefined> => {
   const post = await postsRepository.findById(postId);
   if (!post) return undefined;
 
-  const pricePerHour = post.price ?? DEFAULT_PRICE_PER_HOUR;
+  const { pricePerHour, total } = computePricing(post, hours);
 
   return {
     post_id: post.id,
     provider_id: post.user_id,
     hours,
     price_per_hour: pricePerHour,
-    total: pricePerHour * hours,
+    total,
   };
+};
+
+// Mismo texto que los avisos sembrados de este tipo y que el componente NotificationServiceRequest del cliente
+const INCOMING_SERVICES_MESSAGE = "Solicita tus servicios de:";
+
+// Crea la solicitud (precio calculado en el servidor) y el aviso para el prestador,
+// los dos en una sola query atómica (ver requestsRepository.create).
+const create = async (clientId: string, input: CreateRequestInput): Promise<RequestWithProvider> => {
+  const post = await postsRepository.findById(input.post_id);
+  if (!post) throw Boom.notFound("Publicación no encontrada");
+
+  if (post.user_id === clientId) {
+    throw Boom.conflict("No puedes solicitar tu propio servicio");
+  }
+
+  const requestImage = input.request_image ?? null;
+  if (requestImage !== null && !uploadsService.isUserImageUrl(requestImage, clientId)) {
+    throw Boom.badRequest("La imagen no pertenece al usuario");
+  }
+
+  const request = await requestsRepository.create({
+    post_id: post.id,
+    client_id: clientId,
+    meeting_address: input.meeting_address,
+    meeting_date: input.meeting_date,
+    hours: input.hours,
+    request_image: requestImage,
+    price: computePricing(post, input.hours).total,
+    provider_id: post.user_id,
+    notification_message: INCOMING_SERVICES_MESSAGE,
+  });
+
+  return { ...request, provider_id: post.user_id };
 };
 
 // Dice a que estado pasa la solicitud. Si la accion no se puede hacer devuelve undefined
@@ -87,4 +128,4 @@ const getTransition = (status: ServiceStatus, action: RequestAction): Transition
   return { status: rule.to, notification_type: rule.notification };
 };
 
-export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,};
+export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,};

@@ -4,6 +4,7 @@ import { use, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, TextField, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
+import { useImageUpload } from "@/hooks/useImageUpload";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { useUsers } from "@/context/UsersContext";
@@ -47,7 +48,17 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
       const [hours, setHours] = useState(previous?.hours ?? 1);
       const [date, setDate] = useState(previous?.date ?? "");
       const [time, setTime] = useState(previous?.time ?? "");
-      const [image, setImage] = useState<string | null>(previous?.request_image ?? null);
+      const upload = useImageUpload(user?.id);
+      // Si no se eligió otra imagen se conserva la del borrador anterior.
+      const [pickedNew, setPickedNew] = useState(false);
+      const imageUrl = pickedNew ? upload.imageUrl : (previous?.request_image ?? null);
+      const previewSrc = pickedNew ? upload.previewUrl : (previous?.request_image ?? null);
+      const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+      const handleSelectImage = (file: File) => {
+        setPickedNew(true);
+        setUploadNotice(null);
+        void upload.selectFile(file);
+      };
       const [errors, setErrors] = useState<Errors>({});
       const [minDate] = useState(todayISO);
 // Si el anuncio no existe, mostramos la página de "No encontrado".
@@ -58,6 +69,10 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
        const isOwnPost = user?.id === post.user_id;
    // Esto pasa cuando el cliente aprieta "Continuar":
   const handleContinue = () => {
+    if (upload.isUploading) {
+      setUploadNotice("Espera a que termine de subir la imagen.");
+      return;
+    }
     const newErrors: Errors = {};
     if (!clientName.trim()) newErrors.client_name = "Escribe tu nombre";
     if (!address.trim()) newErrors.meeting_address = "Escribe dónde se van a encontrar";
@@ -66,7 +81,7 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
     setErrors(newErrors);
     // Si todo está bien, guardamos todo como borrador.
     if (Object.keys(newErrors).length > 0) return;
-    saveDraft({post_id: post.id, client_name: clientName.trim(),meeting_address: address.trim(),hours,date,time,request_image: image,
+    saveDraft({post_id: post.id, client_name: clientName.trim(),meeting_address: address.trim(),hours,date,time,request_image: imageUrl,
     });
     router.push(`/schedule/${post.id}/confirm`);
   };
@@ -125,10 +140,15 @@ const ScheduleScreen = ({ postId }: { postId: string }) => {
                 placeholder="Selecciona la hora"
                 error={errors.time}
               />
-              <ImagePicker value={image} onChange={setImage} />
+              <ImagePicker
+                value={previewSrc}
+                onSelect={handleSelectImage}
+                isUploading={upload.isUploading}
+                error={upload.error ?? uploadNotice}
+              />
 
               <div className="pt-2">
-                <Button onClick={handleContinue}>Continuar</Button>
+                <Button onClick={handleContinue} disabled={upload.isUploading}>Continuar</Button>
               </div>
             </div>
           )}
