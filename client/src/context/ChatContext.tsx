@@ -9,8 +9,10 @@ interface ChatContextValue {
   messages: Message[];
   loading: boolean;
   error: string | null;
-  createMessage: (content: string) => void;
+  createMessage: (content: string) => Promise<Message>;
 }
+
+export const MESSAGE_MAX_LENGTH = 1000;
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
@@ -47,16 +49,18 @@ export const ChatProvider = ({
     };
   }, [requestId]);
 
-  // Simulated: in this moment the message only lives in memory.
-  const createMessage = (content: string) => {
-    const message: Message = {
-      id: `m${Date.now()}`,
+  // Los errores se propagan para que el formulario los muestre.
+  const createMessage = async (content: string): Promise<Message> => {
+    if (!user) throw new Error("Debes iniciar sesión para enviar mensajes");
+    const res = await api.post<Message>("/messages", {
+      user_id: user.id,
       service_request_id: requestId,
-      sender_id: user?.id ?? "",
       content,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((prev) => [...prev, message]);
+    });
+    const created = res.data;
+    // Idempotente: evita duplicados si el mismo mensaje llega por otra vía.
+    setMessages((prev) => (prev.some((m) => m.id === created.id) ? prev : [...prev, created]));
+    return created;
   };
   return (
     <ChatContext.Provider value={{ messages, loading, error, createMessage }}>{children}</ChatContext.Provider>
