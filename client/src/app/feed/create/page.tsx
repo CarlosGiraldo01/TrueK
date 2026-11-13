@@ -91,7 +91,7 @@ export default function CreatePostPage() {
 
     const cleanPrice = formData.price.trim();
     const priceNum = Number(cleanPrice.replace(/\D/g, "")) || 5000;
-    const authorId = user?.id ?? "u2";
+    const authorId = user?.id ?? "122baf6d-1d30-44ee-8ee1-77a7695d4ff1";
     const authorName = user?.name ?? "Valentina Arias";
     const authorAge = user?.age ? (user.age + " años") : "24 años";
 
