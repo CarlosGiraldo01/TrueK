@@ -1,6 +1,7 @@
 //la pantalla de “¡Listo!”.
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
@@ -48,7 +49,7 @@ export default function ServiceRequestedPage() {
         <div className="mt-10">
           <ServiceSummaryCard
             title="Servicio"
-            imageUrl={request.request_image ?? post.post_image}
+            imageUrl={request.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE}
             providerName={provider?.name ?? "Prestador"}
             hours={request.hours}
             address={request.meeting_address}

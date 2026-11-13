@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use } from "react";
 import { NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "@/context/RequestContext";
@@ -23,7 +24,7 @@ const RequestDetail = ({ requestId }: { requestId: string }) => {
     return <p className="m-auto text-sm text-truek-placeholder">No encontramos este servicio</p>;
   }
 
-  const imageUrl = request.request_image ?? post.post_image;
+  const imageUrl = request.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE;
 
   if (role === "client") {
     const provider = getUserById(post.user_id);

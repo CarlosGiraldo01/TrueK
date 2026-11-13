@@ -1,6 +1,7 @@
 
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, TopHeader } from "@/components/ui";
@@ -76,7 +77,7 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
       <main className="flex-1 space-y-5 px-5 pb-8 pt-6">
         <ServiceSummaryCard
           title="Resumen del servicio"
-          imageUrl={draft.request_image ?? post.post_image}
+          imageUrl={draft.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE}
           providerName={provider?.name ?? "Prestador"}
           hours={draft.hours}
           pricePerHour={pricePerHour}
