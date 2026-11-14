@@ -128,4 +128,48 @@ const getTransition = (status: ServiceStatus, action: RequestAction): Transition
   return { status: rule.to, notification_type: rule.notification };
 };
 
-export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,};
+// Mismo texto que los avisos sembrados de cada tipo (ver notifications/data.mock.ts)
+const TRANSITION_MESSAGES: Record<"request_accepted" | "request_rejected" | "services_finished", string> = {
+  request_accepted: "Ha aceptado tu solicitud",
+  request_rejected: "Ha rechazado tu solicitud",
+  services_finished: "Tu servicio ha terminado!",
+};
+
+// Cambia el estado de la solicitud y avisa a la otra parte, todo en una sola query atómica
+// (ver requestsRepository.updateStatus).
+const transition = async (actorId: string, id: string, action: RequestAction): Promise<RequestWithProvider> => {
+  const request = await requestsRepository.findById(id);
+  if (!request) throw Boom.notFound("Solicitud no encontrada");
+
+  const { provider_id: providerId } = await addProvider(request);
+  if (providerId === null) throw Boom.notFound("Publicación no encontrada");
+
+  // 403 deliberado (a pedido del usuario) aunque la regla general prefiere 404 para recursos ajenos.
+  if (action === "finish") {
+    if (actorId !== request.client_id && actorId !== providerId) {
+      throw Boom.forbidden("No tienes permiso sobre esta solicitud");
+    }
+  } else if (actorId !== providerId) {
+    throw Boom.forbidden("Solo el prestador puede aceptar o rechazar");
+  }
+
+  const next = getTransition(request.status, action);
+  if (!next) {
+    throw Boom.conflict(`No se puede hacer "${action}" con una solicitud en estado "${request.status}"`);
+  }
+
+  // El aviso siempre le llega a la otra parte
+  const recipientId = actorId === request.client_id ? providerId : request.client_id;
+  const message = TRANSITION_MESSAGES[next.notification_type as keyof typeof TRANSITION_MESSAGES];
+
+  const updated = await requestsRepository.updateStatus(id, request.status, next.status, {
+    user_id: recipientId,
+    type: next.notification_type,
+    message,
+  });
+  if (!updated) throw Boom.conflict("La solicitud cambió de estado, vuelve a intentarlo");
+
+  return { ...updated, provider_id: providerId };
+};
+
+export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,transition,};

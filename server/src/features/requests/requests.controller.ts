@@ -136,6 +136,41 @@ export const getTransition = async (req: Request, res: Response) => {
 };
 
 
+const ALLOWED_PATCH_KEYS = ["user_id", "action"];
+
+// Pura (sin req/res) para poder probarla de forma unitaria. user_id lo aporta getUserId.
+export const parsePatchRequestBody = (body: unknown): { action: RequestAction } => {
+  if (typeof body !== "object" || body === null || Array.isArray(body)) {
+    throw Boom.badRequest("Cuerpo de la solicitud inválido");
+  }
+  const data = body as Record<string, unknown>;
+
+  for (const key of Object.keys(data)) {
+    if (!ALLOWED_PATCH_KEYS.includes(key)) {
+      throw Boom.badRequest(`Campo no editable: ${key}`);
+    }
+  }
+
+  const action = data.action;
+  if (typeof action !== "string" || !ACTIONS.includes(action as RequestAction)) {
+    throw Boom.badRequest("Acción no válida");
+  }
+  return { action: action as RequestAction };
+};
+
+export const updateRequestStatus = async (req: Request, res: Response) => {
+  const actorId = getUserId(req);
+  if (!isUuid(actorId)) {
+    throw Boom.badRequest("user_id inválido");
+  }
+  const id = String(req.params.id);
+  if (!isUuid(id)) {
+    throw Boom.badRequest("id de solicitud inválido");
+  }
+  const { action } = parsePatchRequestBody(req.body);
+  res.json(await requestsService.transition(actorId, id, action));
+};
+
 export const createRequest = async (req: Request, res: Response) => {
   const clientId = getUserId(req);
   if (!isUuid(clientId)) {

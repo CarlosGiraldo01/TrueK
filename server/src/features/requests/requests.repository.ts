@@ -1,5 +1,6 @@
 import { pool } from "../../db/pool";
-import type { ServiceRequest } from "./requests.types";
+import type { NotificationType } from "../notifications/notifications.types";
+import type { ServiceRequest, ServiceStatus } from "./requests.types";
 
 const SELECT_COLUMNS = `
   id, post_id, client_id, meeting_address, meeting_date, hours, status,
@@ -60,6 +61,31 @@ export const requestsRepository = {
         data.provider_id,
         data.notification_message,
       ]
+    );
+    return rows[0];
+  },
+
+  // Cambia el estado y crea el aviso para la otra parte en un solo statement (CTE), atómico.
+  // `and status = $3` es un compare-and-set: si otra petición ya cambió el estado (doble clic,
+  // aceptar y rechazar a la vez) el UPDATE no toca ninguna fila, no se inserta el aviso y
+  // devuelve undefined para que el service responda 409.
+  updateStatus: async (
+    id: string,
+    expectedStatus: ServiceStatus,
+    newStatus: ServiceStatus,
+    notification: { user_id: string; type: NotificationType; message: string }
+  ): Promise<ServiceRequest | undefined> => {
+    const { rows } = await pool.query(
+      `with updated as (
+         update service_requests set status = $1 where id = $2 and status = $3
+         returning ${SELECT_COLUMNS}
+       ),
+       new_notification as (
+         insert into notifications (user_id, service_request_id, type, message)
+         select $4, updated.id, $5, $6 from updated
+       )
+       select * from updated`,
+      [newStatus, id, expectedStatus, notification.user_id, notification.type, notification.message]
     );
     return rows[0];
   },
