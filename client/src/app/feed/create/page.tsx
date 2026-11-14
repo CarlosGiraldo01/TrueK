@@ -8,6 +8,9 @@ import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { NavBar } from "@/components/ui/NavBar";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { LocationResolved } from "@/components/ui/LocationResolved";
+import { useGeocode } from "@/hooks/useGeocode";
+import { GEOCODE_MIN_LENGTH } from "@/lib/geocode";
 import { IMAGE_MIME_TYPES } from "@/lib/uploads";
 
 // Vista para armar y publicar un nuevo truek (rol proveedor)
@@ -37,6 +40,9 @@ export default function CreatePostPage() {
 
   // Subida inmediata de la imagen; el post solo guarda la URL resultante
   const { imageUrl, previewUrl, isUploading, error: imageError, selectFile } = useImageUpload(user?.id);
+
+  // Coordenadas reales: se buscan solo al hacer clic en "Buscar ubicación" o al enviar
+  const geocode = useGeocode();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -102,6 +108,12 @@ export default function CreatePostPage() {
     setIsSubmitting(true);
 
     try {
+      // Los posts requieren coordenadas: se buscan aquí si el texto aún no está resuelto
+      const coords = geocode.isResolvedFor(formData.location)
+        ? geocode.result
+        : await geocode.search(formData.location);
+      if (!coords) return;
+
       const created = await addPost({
         user_id: user.id,
         description: formData.about.trim(),
@@ -110,8 +122,8 @@ export default function CreatePostPage() {
         tags: selectedTags,
         ...(imageUrl ? { post_image: imageUrl } : {}),
         price: priceNum,
-        latitude: 3.4516,
-        longitude: -76.532,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
       });
 
       // Redirigir directo al detalle del post recién creado
@@ -203,15 +215,34 @@ export default function CreatePostPage() {
             <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
               Ciudad y zona
             </label>
-            <input
-              id="location"
-              type="text"
-              required
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="¿Dónde ofreces?"
-              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+            <div className="flex gap-2">
+              <input
+                id="location"
+                type="text"
+                required
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="¿Dónde ofreces?"
+                className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+              />
+              <button
+                type="button"
+                onClick={() => void geocode.search(formData.location)}
+                disabled={geocode.isSearching || formData.location.trim().length < GEOCODE_MIN_LENGTH}
+                className="h-11 shrink-0 cursor-pointer rounded-[12px] border border-[#FF5E1B] px-3 text-xs font-bold text-[#FF5E1B] disabled:cursor-default disabled:opacity-50"
+              >
+                {geocode.isSearching ? "Buscando..." : "Buscar ubicación"}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#5F5F5F]">
+              Escribe barrio y ciudad, por ejemplo: Tequendama, Cali
+            </p>
+            <LocationResolved
+              displayName={geocode.isResolvedFor(formData.location) ? (geocode.result?.display_name ?? null) : null}
             />
+            {geocode.error && (
+              <p role="alert" className="text-xs font-medium text-red-400">{geocode.error}</p>
+            )}
           </div>
 
           {/* Input Sobre mí */}
@@ -301,7 +332,7 @@ export default function CreatePostPage() {
           {/* Botón de envío */}
           <button
             type="submit"
-            disabled={isSubmitting || isUploading}
+            disabled={isSubmitting || isUploading || geocode.isSearching}
             className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#FF5E1B] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#fa530f] active:scale-95 disabled:opacity-50"
           >
             {isSubmitting ? "Creando..." : "Crear"}

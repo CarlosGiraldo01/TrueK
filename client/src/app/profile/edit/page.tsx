@@ -7,6 +7,9 @@ import { ChevronLeftIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { NavBar } from "@/components/ui/NavBar";
 import { useImageUpload } from "@/hooks/useImageUpload";
+import { LocationResolved } from "@/components/ui/LocationResolved";
+import { useGeocode } from "@/hooks/useGeocode";
+import { GEOCODE_MIN_LENGTH } from "@/lib/geocode";
 import { IMAGE_MIME_TYPES } from "@/lib/uploads";
 import type { UpdateUserInput } from "@/types";
 
@@ -27,6 +30,9 @@ export default function EditProfilePage() {
   // Subida inmediata de la foto; el perfil solo guarda la URL resultante
   const { imageUrl, previewUrl, isUploading, error: imageError, selectFile } = useImageUpload(user?.id);
   const avatarSrc = previewUrl ?? user?.profile_picture ?? "/brand/logo-icon.png";
+
+  // Coordenadas reales: se buscan solo al hacer clic en "Buscar ubicación" o al enviar
+  const geocode = useGeocode();
 
   const [isSaving, setIsSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -77,9 +83,19 @@ export default function EditProfilePage() {
     const patch: UpdateUserInput = {};
     if (name !== user.name) patch.name = name;
     if (age !== user.age) patch.age = age;
-    if (location !== user.location) patch.location = location;
+    const locationChanged = location !== user.location;
+    if (locationChanged) patch.location = location;
     if (description !== (user.description ?? "")) patch.description = description === "" ? null : description;
     if (imageUrl) patch.profile_picture = imageUrl;
+
+    // Texto nuevo con coordenadas viejas dejaría el perfil inconsistente. Si el texto no
+    // cambió, solo se envían coordenadas cuando el usuario ya buscó esa ubicación.
+    if (locationChanged || geocode.isResolvedFor(location)) {
+      const coords = geocode.isResolvedFor(location) ? geocode.result : await geocode.search(location);
+      if (!coords) return;
+      patch.latitude = coords.latitude;
+      patch.longitude = coords.longitude;
+    }
 
     if (Object.keys(patch).length === 0) {
       router.push("/profile");
@@ -206,16 +222,35 @@ export default function EditProfilePage() {
             <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
               Ubicación
             </label>
-            <input
-              id="location"
-              type="text"
-              required
-              maxLength={100}
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="Nueva ubicación"
-              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+            <div className="flex gap-2">
+              <input
+                id="location"
+                type="text"
+                required
+                maxLength={100}
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Nueva ubicación"
+                className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+              />
+              <button
+                type="button"
+                onClick={() => void geocode.search(formData.location)}
+                disabled={geocode.isSearching || formData.location.trim().length < GEOCODE_MIN_LENGTH}
+                className="h-11 shrink-0 cursor-pointer rounded-[12px] border border-[#FF5E1B] px-3 text-xs font-bold text-[#FF5E1B] disabled:cursor-default disabled:opacity-50"
+              >
+                {geocode.isSearching ? "Buscando..." : "Buscar ubicación"}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#5F5F5F]">
+              Escribe barrio y ciudad, por ejemplo: Tequendama, Cali
+            </p>
+            <LocationResolved
+              displayName={geocode.isResolvedFor(formData.location) ? (geocode.result?.display_name ?? null) : null}
             />
+            {geocode.error && (
+              <p role="alert" className="text-xs font-medium text-red-400">{geocode.error}</p>
+            )}
           </div>
 
           {/* Descripción */}
@@ -241,7 +276,7 @@ export default function EditProfilePage() {
           {/* Botón actualizar */}
           <button
             type="submit"
-            disabled={isSaving || isUploading}
+            disabled={isSaving || isUploading || geocode.isSearching}
             className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#FF5E1B] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#fa530f] active:scale-95 disabled:opacity-50"
           >
             {isSaving ? "Actualizando..." : "Actualizar perfil"}
