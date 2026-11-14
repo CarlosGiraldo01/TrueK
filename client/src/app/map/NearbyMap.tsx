@@ -2,9 +2,9 @@
 
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { AttributionControl, MapContainer, Marker, TileLayer } from "react-leaflet";
+import { useEffect, useRef } from "react";
+import { AttributionControl, MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import type { Post } from "@/types";
-import { USER_POSITION } from "./constants";
 
 const dotIcon = (color: string, size: number, border: string) =>
   L.divIcon({
@@ -20,19 +20,45 @@ const selectedPinIcon = dotIcon("#FF5E1B", 30, "#161615");
 
 interface NearbyMapProps {
   posts: Post[];
+  userPosition: [number, number];
+  source: string;
   selectedPostId: string | null;
   onSelectPost: (postId: string) => void;
   onMapReady: (map: L.Map | null) => void;
 }
 
-export default function NearbyMap({ posts, selectedPostId, onSelectPost, onMapReady }: NearbyMapProps) {
-  
-  const bounds = L.latLngBounds([USER_POSITION, ...posts.map((p) => [p.latitude, p.longitude] as [number, number])]);
+// MapContainer solo aplica center/bounds al montar, así que re-encuadramos aquí.
+// Solo se re-encuadra cuando cambian los posts o la fuente de ubicación; los cambios
+// de posición en vivo mueven el punto azul pero no la vista (el usuario puede estar explorando).
+function FitView({ userPosition, posts, source }: { userPosition: [number, number]; posts: Post[]; source: string }) {
+  const map = useMap();
+  const latestRef = useRef({ userPosition, posts });
+  // Clave estable: el arreglo de posts puede cambiar de identidad sin cambiar de contenido
+  const postsKey = posts.map((p) => `${p.id}:${p.latitude}:${p.longitude}`).join("|");
 
+  // Se declara antes del efecto de encuadre para que éste lea siempre los valores actuales
+  useEffect(() => {
+    latestRef.current = { userPosition, posts };
+  });
+
+  useEffect(() => {
+    const { userPosition: pos, posts: current } = latestRef.current;
+    if (current.length === 0) {
+      map.setView(pos, 14);
+      return;
+    }
+    const bounds = L.latLngBounds([pos, ...current.map((p) => [p.latitude, p.longitude] as [number, number])]);
+    map.fitBounds(bounds, { padding: [40, 40] });
+  }, [map, source, postsKey]);
+
+  return null;
+}
+
+export default function NearbyMap({ posts, userPosition, source, selectedPostId, onSelectPost, onMapReady }: NearbyMapProps) {
   return (
     <MapContainer
-      bounds={bounds}
-      boundsOptions={{ padding: [40, 40] }}
+      center={userPosition}
+      zoom={14}
       zoomControl={false}
       attributionControl={false}
       className="h-full w-full"
@@ -44,7 +70,8 @@ export default function NearbyMap({ posts, selectedPostId, onSelectPost, onMapRe
       />
       <AttributionControl position="topright" prefix={false} />
 
-      <Marker position={USER_POSITION} icon={userIcon} />
+      <FitView userPosition={userPosition} posts={posts} source={source} />
+      <Marker position={userPosition} icon={userIcon} />
       {posts.map((post) => (
         <Marker
           key={post.id}

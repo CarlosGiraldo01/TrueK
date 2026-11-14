@@ -2,10 +2,13 @@ import Boom from "@hapi/boom";
 import { uploadsService } from "../uploads/uploads.service";
 import { usersService } from "../users/users.service";
 import { postsRepository } from "./posts.repository";
-import type { CreatePostInput, Post } from "./posts.types";
+import type { CreatePostInput, NearbyQuery, Post } from "./posts.types";
 
 export const postsService = {
-  getAll: () => postsRepository.findAll(),
+  getAll: (nearby?: NearbyQuery | null) =>
+    nearby
+      ? postsRepository.findNearby(nearby.lat, nearby.lng, nearby.radiusKm)
+      : postsRepository.findAll(),
   getById: (id: string) => postsRepository.findById(id),
   getTags: () => postsRepository.findTags(),
 

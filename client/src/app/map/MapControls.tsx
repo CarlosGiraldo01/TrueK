@@ -1,9 +1,9 @@
 import type { Map as LeafletMap } from "leaflet";
 import { MinusIcon, PlusIcon } from "@heroicons/react/24/outline";
-import { USER_POSITION } from "./constants";
 
 interface MapControlsProps {
   map: LeafletMap | null;
+  userPosition: [number, number];
 }
 
 const buttonClass =
@@ -26,7 +26,7 @@ function LocateIcon({ className }: { className?: string }) {
   );
 }
 
-export function MapControls({ map }: MapControlsProps) {
+export function MapControls({ map, userPosition }: MapControlsProps) {
   return (
     <div className="flex flex-col gap-3">
       <button type="button" aria-label="Acercar" className={`${buttonClass} text-white`} onClick={() => map?.zoomIn()}>
@@ -39,7 +39,7 @@ export function MapControls({ map }: MapControlsProps) {
         type="button"
         aria-label="Mi ubicación"
         className={`${buttonClass} text-truek-orange`}
-        onClick={() => map?.flyTo(USER_POSITION, 14)}
+        onClick={() => map?.flyTo(userPosition, 14)}
       >
         <LocateIcon className="size-7" />
       </button>

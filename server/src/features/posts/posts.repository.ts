@@ -1,8 +1,8 @@
 import { pool } from "../../db/pool";
+import { haversineKmSql } from "../../utils/geo";
 import type { CreatePostData, Post } from "./posts.types";
 
-const POST_SELECT = `
-  select
+const POST_COLUMNS = `
     p.id,
     p.user_id,
     p.name,
@@ -14,12 +14,41 @@ const POST_SELECT = `
     p.post_image,
     p.price,
     p.created_at,
-    coalesce(json_agg(t.name) filter (where t.name is not null), '[]') as tags from posts p
+    coalesce(json_agg(t.name) filter (where t.name is not null), '[]') as tags`;
+
+const POST_JOINS = `from posts p
     left join post_tags pt on pt.post_id = p.id
-    left join tags t on t.id = pt.tag_id
+    left join tags t on t.id = pt.tag_id`;
+
+const POST_SELECT = `
+  select${POST_COLUMNS} ${POST_JOINS}
+`;
+
+// La distancia se calcula una sola vez en un lateral y se reutiliza en select/where/order by.
+// round() devuelve numeric (pg lo entrega como string): se castea de vuelta a double precision.
+const NEARBY_SQL = `
+  select${POST_COLUMNS},
+    round((dist.d)::numeric, 1)::double precision as distance_km
+  ${POST_JOINS}
+    cross join lateral (
+      select ${haversineKmSql(
+        "$1::double precision",
+        "$2::double precision",
+        "p.latitude::double precision",
+        "p.longitude::double precision"
+      )} as d
+    ) dist
+  where dist.d <= $3::double precision
+  group by p.id, dist.d
+  order by dist.d asc, p.created_at desc
 `;
 
 export const postsRepository = {
+  findNearby: async (lat: number, lng: number, radiusKm: number): Promise<Post[]> => {
+    const { rows } = await pool.query(NEARBY_SQL, [lat, lng, radiusKm]);
+    return rows;
+  },
+
   findAll: async (): Promise<Post[]> => {
     const { rows } = await pool.query(
       `${POST_SELECT} group by p.id order by p.created_at desc`

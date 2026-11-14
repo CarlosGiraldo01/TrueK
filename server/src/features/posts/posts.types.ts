@@ -14,7 +14,14 @@ export interface CreatePostData extends CreatePostInput {
     name: string;
 }
 
+export interface NearbyQuery {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+}
+
 export interface Post {
+    distance_km?: number;
     id: string;
     user_id: string;
     name: string;

@@ -13,7 +13,9 @@ export interface Post {
   offer?: string;
   price?: number;
   published_ago?: string;
-  rating?: number;  
+  rating?: number;
+  // Solo viene en GET /posts con lat/lng/radius_km
+  distance_km?: number;
 }
 
 // Cuerpo de POST /posts (el servidor completa name e id)

@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { getUserId } from "../../middlewares/auth-placeholder";
 import { isUuid } from "../../utils/uuid";
 import { postsService } from "./posts.service";
-import type { CreatePostInput } from "./posts.types";
+import type { CreatePostInput, NearbyQuery } from "./posts.types";
 
 const MIN_PRICE = 100;
 const MAX_PRICE = 50000;
@@ -90,8 +90,49 @@ export const parseCreatePostBody = (
   return input;
 };
 
-export const getPosts = async (_req: Request, res: Response) => {
-  res.json(await postsService.getAll());
+export const MAX_RADIUS_KM = 50;
+
+const parseLocationParam = (value: unknown): number => {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw Boom.badRequest("Parámetros de ubicación inválidos");
+  }
+  const n = Number(value);
+  if (!Number.isFinite(n)) {
+    throw Boom.badRequest("Parámetros de ubicación inválidos");
+  }
+  return n;
+};
+
+// Pura. null = no se pidió filtro. Un filtro parcial (1 o 2 de los 3 parámetros) también
+// es 400: no tiene un significado claro.
+export const parseNearbyQuery = (query: unknown): NearbyQuery | null => {
+  const q = (typeof query === "object" && query !== null ? query : {}) as Record<
+    string,
+    unknown
+  >;
+  const keys = ["lat", "lng", "radius_km"] as const;
+  const present = keys.filter((k) => q[k] !== undefined);
+  if (present.length === 0) return null;
+  if (present.length < keys.length) {
+    throw Boom.badRequest("Parámetros de ubicación inválidos");
+  }
+
+  const lat = parseLocationParam(q.lat);
+  const lng = parseLocationParam(q.lng);
+  const radiusKm = parseLocationParam(q.radius_km);
+  if (
+    lat < -90 || lat > 90 ||
+    lng < -180 || lng > 180 ||
+    radiusKm <= 0 || radiusKm > MAX_RADIUS_KM
+  ) {
+    throw Boom.badRequest("Parámetros de ubicación inválidos");
+  }
+  return { lat, lng, radiusKm };
+};
+
+export const getPosts = async (req: Request, res: Response) => {
+  const nearby = parseNearbyQuery(req.query);
+  res.json(await postsService.getAll(nearby));
 };
 
 export const getPostById = async (req: Request, res: Response) => {
