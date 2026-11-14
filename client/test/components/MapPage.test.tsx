@@ -26,7 +26,13 @@ vi.mock("next/dynamic", () => ({
 }));
 vi.mock("@/app/map/MapControls", () => ({ MapControls: () => null }));
 vi.mock("@/app/map/ProviderCard", () => ({ ProviderCard: () => null }));
-vi.mock("@/components/ui", () => ({ NavBar: () => null, TopHeader: () => null }));
+// StatusMessage se usa real (no se simula) para que el test siga viendo el role="status" y el texto de verdad.
+vi.mock("@/components/ui", async () => ({
+  NavBar: () => null,
+  TopHeader: () => null,
+  StatusMessage: (await vi.importActual<typeof import("@/components/ui/StatusMessage")>("@/components/ui/StatusMessage"))
+    .StatusMessage,
+}));
 vi.mock("@/context/SessionContext", () => ({ useSession: () => ({ user: session.user }) }));
 vi.mock("@/context/UsersContext", () => ({ useUsers: () => ({ getUserById: () => undefined }) }));
 vi.mock("@/hooks/useGeolocation", () => ({ useGeolocation: () => geo.value }));

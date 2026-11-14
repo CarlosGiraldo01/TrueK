@@ -5,7 +5,7 @@ import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use, useState } from "react";
 import axios from "axios";
 import { notFound, useRouter } from "next/navigation";
-import { Button, NavBar, TopHeader } from "@/components/ui";
+import { Button, NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
 import { useUsers } from "@/context/UsersContext";
@@ -42,7 +42,7 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
       <div className="flex min-h-dvh flex-col">
         <TopHeader title="Confirmar servicio" />
         <main className="flex flex-1 flex-col items-center justify-center gap-6 px-10 text-center">
-          <p className="text-sm text-truek-placeholder">Primero completa los datos del servicio.</p>
+          <StatusMessage variant="empty">Primero completa los datos del servicio.</StatusMessage>
           <Button onClick={() => router.replace(`/schedule/${postId}`)}>Agendar servicio</Button>
         </main>
         <NavBar activeId="inicio" />
@@ -56,7 +56,12 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
       <div className="flex min-h-dvh flex-col">
         <TopHeader title="Confirmar servicio" />
         <main className="flex flex-1 items-center justify-center px-10 text-center">
-          <p className="text-sm text-truek-placeholder">{quoteError ?? "Calculando el precio..."}</p>
+          {/* Misma condición que el `??` original: el error si existe, si no el estado de carga */}
+          {quoteError != null ? (
+            <StatusMessage variant="error">{quoteError}</StatusMessage>
+          ) : (
+            <StatusMessage variant="loading">Calculando el precio...</StatusMessage>
+          )}
         </main>
         <NavBar activeId="inicio" />
       </div>

@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Button, Logo, NavBar, StarRating, TextField, TopHeader } from "@/components/ui";
+import { Button, Logo, NavBar, StarRating, StatusMessage, TextField, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
 import { useUsers } from "@/context/UsersContext";
@@ -26,7 +26,7 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
  //condicion para que el cliente califique y solo cuando el servicio termina
  //se simula un error si esta mal o falta algo 
   if (!request || !post || getRole(request) !== "client" || request.status !== "finished") {
-    return <p className="m-auto text-sm text-truek-placeholder">No hay un servicio para calificar</p>;}
+    return <StatusMessage variant="empty" className="m-auto">No hay un servicio para calificar</StatusMessage>;}
   const provider = getUserById(post.user_id);
 //esto hace que se guarden las estrellas y el cometario, si cerramos el pedido si ya lo leyo y la redireccion de la pagina de pago
   const handleSend = async () => {

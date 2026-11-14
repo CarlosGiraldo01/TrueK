@@ -7,6 +7,7 @@ export { NavBar } from "./NavBar";
 export type { NavItemId } from "./NavBar";
 export { PostCard } from "./PostCard";
 export { StarRating } from "./StarRating";
+export { StatusMessage } from "./StatusMessage";
 export { TextField } from "./TextField";
 export { TopHeader } from "./TopHeader";
 export { NotificationRequestAccepted } from "./notifications/NotificationRequestAccepted";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { StatusMessage } from "@/components/ui";
 import { useChat } from "@/context/ChatContext";
 import { MessageBubble } from "./MessageBubble";
 
@@ -29,13 +30,13 @@ export function MessageList({ currentUserId, clientId }: MessageListProps) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
       {loading && (
-        <p className="m-auto text-sm text-truek-placeholder">Cargando mensajes...</p>
+        <StatusMessage variant="loading" className="m-auto">Cargando mensajes...</StatusMessage>
       )}
       {!loading && error && (
         <p role="alert" className="m-auto text-sm text-red-400">{error}</p>
       )}
       {!loading && !error && messages.length === 0 && (
-        <p className="m-auto text-sm text-truek-placeholder">Escribe el primer mensaje</p>
+        <StatusMessage variant="empty" className="m-auto">Escribe el primer mensaje</StatusMessage>
       )}
       {messages.length > 0 && (
         <p className="my-1 text-center text-xs text-truek-placeholder">

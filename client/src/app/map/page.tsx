@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import type { Map as LeafletMap } from "leaflet";
-import { NavBar, TopHeader } from "@/components/ui";
+import { NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { useSession } from "@/context/SessionContext";
 import { useUsers } from "@/context/UsersContext";
 import { useGeolocation } from "@/hooks/useGeolocation";
@@ -74,9 +74,9 @@ export default function MapPage() {
             onMapReady={setMap}
           />
         ) : (
-          <p role="status" className="flex h-full items-center justify-center text-sm text-white/80">
+          <StatusMessage variant="loading" className="h-full">
             Obteniendo tu ubicación…
-          </p>
+          </StatusMessage>
         )}
 
         <div className="absolute left-3 top-3 z-1000 flex flex-col items-start gap-2">

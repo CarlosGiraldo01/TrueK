@@ -2,7 +2,7 @@
 
 import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use } from "react";
-import { NavBar, TopHeader } from "@/components/ui";
+import { NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { useRequests } from "@/context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
 import { useUsers } from "@/context/UsersContext";
@@ -21,7 +21,7 @@ const RequestDetail = ({ requestId }: { requestId: string }) => {
   const role = request ? getRole(request) : null;
 
   if (!request || !post || !role) {
-    return <p className="m-auto text-sm text-truek-placeholder">No encontramos este servicio</p>;
+    return <StatusMessage variant="empty" className="m-auto">No encontramos este servicio</StatusMessage>;
   }
 
   const imageUrl = request.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE;
