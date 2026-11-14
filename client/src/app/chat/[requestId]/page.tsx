@@ -2,7 +2,7 @@
 
 import { useSession } from "@/context/SessionContext";
 import { use } from "react";
-import { NavBar, TopHeader } from "@/components/ui";
+import { NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { ChatProvider } from "@/context/ChatContext";
 import { usePosts } from "@/context/PostsContext";
 import { useRequests } from "@/context/RequestContext";
@@ -26,7 +26,7 @@ const currentUserId = useSession().user?.id;
     return (
       <div className="flex min-h-dvh flex-col">
         <TopHeader title="Mensajes" />
-        <p className="m-auto text-sm text-truek-placeholder">No encontramos este chat</p>
+        <StatusMessage variant="empty" className="m-auto">No encontramos este chat</StatusMessage>
         <NavBar activeId="servicios" />
       </div>
     );

@@ -2,9 +2,16 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { ChevronLeftIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { NavBar } from "@/components/ui/NavBar";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { LocationResolved } from "@/components/ui/LocationResolved";
+import { useGeocode } from "@/hooks/useGeocode";
+import { GEOCODE_MIN_LENGTH } from "@/lib/geocode";
+import { IMAGE_MIME_TYPES } from "@/lib/uploads";
+import type { UpdateUserInput } from "@/types";
 
 // Vista para editar los datos de perfil del usuario
 export default function EditProfilePage() {
@@ -20,46 +27,95 @@ export default function EditProfilePage() {
     description: user?.description ?? "",
   });
 
-  // Vista previa de la foto de perfil
-  const [avatarPreview, setAvatarPreview] = useState<string>(
-    user?.profile_picture || "/brand/logo-icon.png"
-  );
+  // Subida inmediata de la foto; el perfil solo guarda la URL resultante
+  const { imageUrl, previewUrl, isUploading, error: imageError, selectFile } = useImageUpload(user?.id);
+  const avatarSrc = previewUrl ?? user?.profile_picture ?? "/brand/logo-icon.png";
+
+  // Coordenadas reales: se buscan solo al hacer clic en "Buscar ubicación" o al enviar
+  const geocode = useGeocode();
 
   const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // Convertir la imagen nueva a base64
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setAvatarPreview(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    selectFile(e.target.files?.[0] ?? null);
+    // Permite volver a elegir el mismo archivo
+    e.target.value = "";
   };
 
   // Guardar cambios y volver al perfil
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
+    setErrorMessage("");
 
-    const parsedAge = parseInt(formData.age, 10);
+    if (isUploading) {
+      setErrorMessage("Espera a que termine de subir la imagen.");
+      return;
+    }
+    if (!user) {
+      setErrorMessage("Debes iniciar sesión para editar tu perfil.");
+      return;
+    }
 
-    updateUser({
-      name: formData.name.trim() || user?.name,
-      age: isNaN(parsedAge) ? user?.age : parsedAge,
-      location: formData.location.trim() || user?.location,
-      description: formData.description.trim() || user?.description,
-      profile_picture: avatarPreview,
-    });
+    const name = formData.name.trim();
+    const location = formData.location.trim();
+    const description = formData.description.trim();
+    const age = Number(formData.age);
 
-    setTimeout(() => {
-      setIsSaving(false);
+    if (name.length < 1 || name.length > 60) {
+      setErrorMessage("El nombre debe tener entre 1 y 60 caracteres.");
+      return;
+    }
+    if (!Number.isInteger(age) || age < 18 || age > 120) {
+      setErrorMessage("La edad debe estar entre 18 y 120.");
+      return;
+    }
+    if (location.length < 1 || location.length > 100) {
+      setErrorMessage("La ubicación debe tener entre 1 y 100 caracteres.");
+      return;
+    }
+    if (description.length > 500) {
+      setErrorMessage("La descripción no puede superar los 500 caracteres.");
+      return;
+    }
+
+    // Solo se envían los campos que cambiaron
+    const patch: UpdateUserInput = {};
+    if (name !== user.name) patch.name = name;
+    if (age !== user.age) patch.age = age;
+    const locationChanged = location !== user.location;
+    if (locationChanged) patch.location = location;
+    if (description !== (user.description ?? "")) patch.description = description === "" ? null : description;
+    if (imageUrl) patch.profile_picture = imageUrl;
+
+    // Texto nuevo con coordenadas viejas dejaría el perfil inconsistente. Si el texto no
+    // cambió, solo se envían coordenadas cuando el usuario ya buscó esa ubicación.
+    if (locationChanged || geocode.isResolvedFor(location)) {
+      const coords = geocode.isResolvedFor(location) ? geocode.result : await geocode.search(location);
+      if (!coords) return;
+      patch.latitude = coords.latitude;
+      patch.longitude = coords.longitude;
+    }
+
+    if (Object.keys(patch).length === 0) {
       router.push("/profile");
-    }, 200);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateUser(patch);
+      router.push("/profile");
+    } catch (err) {
+      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      setErrorMessage(
+        typeof serverMessage === "string" && serverMessage
+          ? serverMessage
+          : "No se pudo actualizar tu perfil. Intenta de nuevo."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Cerrar sesión y mandar al login
@@ -94,11 +150,11 @@ export default function EditProfilePage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           
           {/* Foto de perfil */}
-          <div className="flex justify-center my-2">
+          <div className="flex flex-col items-center gap-1.5 my-2">
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_MIME_TYPES.join(",")}
               onChange={handleAvatarChange}
               className="hidden"
             />
@@ -110,7 +166,7 @@ export default function EditProfilePage() {
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={avatarPreview}
+                src={avatarSrc}
                 alt="Foto de perfil"
                 className="h-full w-full object-cover"
               />
@@ -118,6 +174,12 @@ export default function EditProfilePage() {
                 <CameraIcon className="size-7 text-white" />
               </div>
             </button>
+            {isUploading && (
+              <p className="text-xs font-medium text-[#8A8A8A]">Subiendo imagen...</p>
+            )}
+            {imageError && (
+              <p role="alert" className="text-xs font-medium text-red-400">{imageError}</p>
+            )}
           </div>
 
           {/* Nombre */}
@@ -129,6 +191,7 @@ export default function EditProfilePage() {
               id="name"
               type="text"
               required
+              maxLength={60}
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Nuevo nombre"
@@ -144,7 +207,7 @@ export default function EditProfilePage() {
             <input
               id="age"
               type="number"
-              min={1}
+              min={18}
               max={120}
               required
               value={formData.age}
@@ -159,15 +222,35 @@ export default function EditProfilePage() {
             <label htmlFor="location" className="text-xs font-medium text-[#8A8A8A]">
               Ubicación
             </label>
-            <input
-              id="location"
-              type="text"
-              required
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              placeholder="Nueva ubicación"
-              className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+            <div className="flex gap-2">
+              <input
+                id="location"
+                type="text"
+                required
+                maxLength={100}
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder="Nueva ubicación"
+                className="h-11 w-full rounded-[12px] bg-[#242423] px-3.5 text-sm text-white placeholder:text-[#5F5F5F] outline-none transition-all focus:ring-1.5 focus:ring-[#FF5E1B]"
+              />
+              <button
+                type="button"
+                onClick={() => void geocode.search(formData.location)}
+                disabled={geocode.isSearching || formData.location.trim().length < GEOCODE_MIN_LENGTH}
+                className="h-11 shrink-0 cursor-pointer rounded-[12px] border border-[#FF5E1B] px-3 text-xs font-bold text-[#FF5E1B] disabled:cursor-default disabled:opacity-50"
+              >
+                {geocode.isSearching ? "Buscando..." : "Buscar ubicación"}
+              </button>
+            </div>
+            <p className="text-[11px] text-[#5F5F5F]">
+              Escribe barrio y ciudad, por ejemplo: Tequendama, Cali
+            </p>
+            <LocationResolved
+              displayName={geocode.isResolvedFor(formData.location) ? (geocode.result?.display_name ?? null) : null}
             />
+            {geocode.error && (
+              <p role="alert" className="text-xs font-medium text-red-400">{geocode.error}</p>
+            )}
           </div>
 
           {/* Descripción */}
@@ -178,7 +261,7 @@ export default function EditProfilePage() {
             <textarea
               id="description"
               rows={3}
-              required
+              maxLength={500}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="¿Qué cosas nuevas tienes por contar?"
@@ -186,10 +269,14 @@ export default function EditProfilePage() {
             />
           </div>
 
+          {errorMessage && (
+            <p role="alert" className="text-xs font-medium text-red-400">{errorMessage}</p>
+          )}
+
           {/* Botón actualizar */}
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isUploading || geocode.isSearching}
             className="mt-3 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#FF5E1B] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#fa530f] active:scale-95 disabled:opacity-50"
           >
             {isSaving ? "Actualizando..." : "Actualizar perfil"}

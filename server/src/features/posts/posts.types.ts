@@ -1,4 +1,27 @@
+export interface CreatePostInput {
+    user_id: string;
+    description: string;
+    offer: string;
+    location: string;
+    latitude: number;
+    longitude: number;
+    price: number;
+    tags: string[];
+    post_image?: string;
+}
+
+export interface CreatePostData extends CreatePostInput {
+    name: string;
+}
+
+export interface NearbyQuery {
+    lat: number;
+    lng: number;
+    radiusKm: number;
+}
+
 export interface Post {
+    distance_km?: number;
     id: string;
     user_id: string;
     name: string;

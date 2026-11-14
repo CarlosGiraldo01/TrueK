@@ -1,15 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { api } from "@/lib/api";
-import type { Post } from "@/types";
+import type { Post, CreatePostInput } from "@/types";
 
 interface PostsContextValue {
   posts: Post[];
   tags: string[];
   loading: boolean;
   error: string | null;
-  addPost: (postData: Omit<Post, "id" | "created_at">) => Post;
+  addPost: (input: CreatePostInput) => Promise<Post>;
   getPostById: (id: string) => Post | undefined;
   getPostsByUserId: (userId: string) => Post[];
   searchPosts: (query: string, tag?: string) => Post[];
@@ -17,27 +17,11 @@ interface PostsContextValue {
 
 const PostsContext = createContext<PostsContextValue | null>(null);
 
-// Clave para guardar los posts creados localmente
-const STORAGE_KEY = "truek_created_posts";
-
 export function PostsProvider({ children }: { children: ReactNode }) {
   const [serverPosts, setServerPosts] = useState<Post[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Leer posts creados desde el localStorage
-  const [createdPosts, setCreatedPosts] = useState<Post[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error reading posts from storage:", e);
-      }
-    }
-    return [];
-  });
 
   // Cargar posts y etiquetas del servidor al iniciar
   useEffect(() => {
@@ -61,30 +45,13 @@ export function PostsProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Guardar en localStorage cuando se creen nuevos posts
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(createdPosts));
-    } catch (e) {
-      console.error("Error saving posts to storage:", e);
-    }
-  }, [createdPosts]);
+  const posts = serverPosts;
 
-  // Unir los posts locales con los del servidor
-  const posts = useMemo(() => [...createdPosts, ...serverPosts], [createdPosts, serverPosts]);
-
-  // Crear un nuevo post y guardarlo arriba del todo
-  const addPost = (postData: Omit<Post, "id" | "created_at">): Post => {
-    const newPost: Post = {
-      ...postData,
-      id: "p_" + Date.now(),
-      created_at: new Date().toISOString(),
-      published_ago: "Publicado hace un momento",
-    };
-
-    setCreatedPosts((prev) => [newPost, ...prev]);
-
-    return newPost;
+  // Crear el post en el servidor y ponerlo arriba del todo (quien llama maneja los errores)
+  const addPost = async (input: CreatePostInput): Promise<Post> => {
+    const res = await api.post<Post>("/posts", input);
+    setServerPosts((prev) => [res.data, ...prev.filter((p) => p.id !== res.data.id)]);
+    return res.data;
   };
 
   const getPostById = (id: string) => {

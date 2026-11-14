@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { getUsers, getUserById} from "./users.controller";
+import { getUsers, getUserById, updateUser } from "./users.controller";
 
 export const usersRouter = Router();
 
 usersRouter.get("/", getUsers);
-usersRouter.get ("/:id", getUserById);
+usersRouter.get("/:id", getUserById);
+usersRouter.patch("/:id", updateUser);

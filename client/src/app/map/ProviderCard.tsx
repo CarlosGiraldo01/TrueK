@@ -8,13 +8,20 @@ interface ProviderCardProps {
 }
 
 export function ProviderCard({ post, provider }: ProviderCardProps) {
+  // post.name es el nombre del autor (copiado al crear el post), así que no identifica el servicio.
+  const subtitle = post.location.trim() || post.tags[0] || null;
+  const offer = post.offer?.trim();
+
   return (
     <div className="rounded-3xl border border-truek-lime bg-truek-card p-4 shadow-xl">
       <div className="flex items-center gap-4">
         <Avatar src={provider.profile_picture ?? undefined} name={provider.name} size="md" />
         <div className="min-w-0">
           <h2 className="truncate text-lg font-bold text-white">{provider.name}</h2>
-          <p className="truncate text-sm text-truek-placeholder">{post.name}</p>
+          {subtitle && <p className="truncate text-sm text-truek-placeholder">{subtitle}</p>}
+          {post.distance_km !== undefined && (
+            <p className="text-xs text-truek-placeholder">a {post.distance_km} km</p>
+          )}
         </div>
       </div>
 
@@ -29,7 +36,7 @@ export function ProviderCard({ post, provider }: ProviderCardProps) {
         ))}
       </div>
 
-      <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-white/80">{post.description}</p>
+      {offer && <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-white/80">{offer}</p>}
 
       <Link
         href={`/post/${post.id}`}

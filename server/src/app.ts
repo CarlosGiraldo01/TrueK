@@ -7,6 +7,9 @@ import { requestsRouter } from './features/requests/requests.router';
 import { ratingsRouter } from './features/ratings/ratings.router';
 import { messagesRouter } from './features/messages/messages.router';
 import { notificationsRouter } from './features/notifications/notifications.router';
+import { uploadsRouter } from './features/uploads/uploads.router';
+import { geoRouter } from './features/geo/geo.router';
+import { errorHandler } from './middlewares/errorMiddleware';
 
 export const app = express();
 //mas rutas 
@@ -23,5 +26,10 @@ app.use('/requests', requestsRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/messages', messagesRouter);
 app.use('/notifications',  notificationsRouter);
+app.use('/uploads', uploadsRouter);
+app.use('/geocode', geoRouter);
+
+// Debe ir después de todos los routers: es el único lugar que convierte errores en JSON.
+app.use(errorHandler);
 
 export default app;

@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { useRouter } from "next/navigation";
 import { FeedHeader } from "@/components/ui/FeedHeader";
 import { PostCard } from "@/components/ui/PostCard";
@@ -54,7 +55,7 @@ export function FeedView({ forcedRole }: FeedViewProps) {
             return (
               <PostCard
                 key={post.id}
-                imageUrl={post.post_image}
+                imageUrl={post.post_image ?? DEFAULT_POST_IMAGE}
                 name={post.name}
                 about={post.description}
                 tags={post.tags}

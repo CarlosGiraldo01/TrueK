@@ -1,11 +1,13 @@
 export { Avatar } from "./Avatar";
 export { Button } from "./Button";
 export { FeedHeader } from "./FeedHeader";
+export { LocationResolved } from "./LocationResolved";
 export { Logo } from "./Logo";
 export { NavBar } from "./NavBar";
 export type { NavItemId } from "./NavBar";
 export { PostCard } from "./PostCard";
 export { StarRating } from "./StarRating";
+export { StatusMessage } from "./StatusMessage";
 export { TextField } from "./TextField";
 export { TopHeader } from "./TopHeader";
 export { NotificationRequestAccepted } from "./notifications/NotificationRequestAccepted";

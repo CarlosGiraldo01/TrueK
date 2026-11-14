@@ -1,10 +1,11 @@
 //la pantalla de “¡Listo!”.
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
-import { Button, NavBar, TopHeader } from "@/components/ui";
+import { Button, NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { ServiceBellIcon } from "@/components/icons/ServiceBellIcon";
 import { useRequests } from "../../../../context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
@@ -26,7 +27,7 @@ export default function ServiceRequestedPage() {
       <div className="flex min-h-dvh flex-col">
         <TopHeader title="Servicio pedido" onBack={() => router.push("/home")} />
         <main className="flex flex-1 flex-col items-center justify-center gap-6 px-10 text-center">
-          <p className="text-sm text-truek-placeholder">Todavía no has pedido ningún servicio.</p>
+          <StatusMessage variant="empty">Todavía no has pedido ningún servicio.</StatusMessage>
           <Button onClick={() => router.push("/home")}>Ir al inicio</Button>
         </main>
         <NavBar activeId="inicio" />
@@ -48,7 +49,7 @@ export default function ServiceRequestedPage() {
         <div className="mt-10">
           <ServiceSummaryCard
             title="Servicio"
-            imageUrl={request.request_image ?? post.post_image}
+            imageUrl={request.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE}
             providerName={provider?.name ?? "Prestador"}
             hours={request.hours}
             address={request.meeting_address}

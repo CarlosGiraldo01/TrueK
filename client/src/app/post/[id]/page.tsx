@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
@@ -87,7 +88,7 @@ export default function PostDetailPage({ params }: PageProps) {
           <div className="aspect-[16/11] w-full overflow-hidden rounded-[22px] bg-black shadow-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={post.post_image}
+              src={post.post_image ?? DEFAULT_POST_IMAGE}
               alt={post.name}
               className="h-full w-full object-cover object-center"
             />

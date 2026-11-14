@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Button, StarRating } from "@/components/ui";
+import { Button, StarRating, StatusMessage } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
 import type { ServiceRequest, User } from "@/types";
 import { ServiceDetailCard, StatusBadge } from "./ServiceDetailCard";
@@ -30,7 +30,9 @@ export function FinishedServiceView({ request, client, imageUrl }: Props) {
         {rating ? (
           <StarRating value={rating.rating} size={22} />
         ) : (
-          <p className="text-xs text-truek-placeholder">Esperando la calificación del cliente...</p>
+          <StatusMessage variant="loading" size="sm" className="justify-start text-left">
+            Esperando la calificación del cliente...
+          </StatusMessage>
         )}
       </div>
 

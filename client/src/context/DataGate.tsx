@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { StatusMessage } from "@/components/ui";
 import { useUsers } from "./UsersContext";
 import { usePosts } from "./PostsContext";
 import { useRequests } from "./RequestContext";
@@ -23,7 +24,7 @@ export function DataGate({ children }: { children: ReactNode }) {
   if (users.loading || posts.loading || requests.loading) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <p className="text-sm text-truek-placeholder">Cargando...</p>
+        <StatusMessage variant="loading">Cargando...</StatusMessage>
       </div>
     );
   }

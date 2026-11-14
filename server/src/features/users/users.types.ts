@@ -7,8 +7,20 @@ export interface User {
   profile_picture: string | null;
   age: number;
   location: string;
-  description: string;
+  description: string | null;
   role: UserRole;
+  latitude: number | null;
+  longitude: number | null;
   trueks_count?: number;
   rating?: number;
+}
+
+export interface UpdateUserInput {
+  name?: string;
+  description?: string | null;
+  profile_picture?: string | null;
+  age?: number;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }

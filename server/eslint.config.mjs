@@ -10,7 +10,13 @@ export default tseslint.config(
       '@stylistic': stylistic,
     },
     rules: {
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // Prefijo `_` = no usado a propósito (p. ej. `_next` en el errorHandler, que Express
+      // necesita con 4 parámetros). Ver .claude/rules/typescript-style.md.
+      '@typescript-eslint/no-unused-vars': ['warn', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+      }],
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
