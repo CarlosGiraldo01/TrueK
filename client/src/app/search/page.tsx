@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -139,7 +140,7 @@ export default function SearchPage() {
               return (
                 <PostCard
                   key={post.id}
-                  imageUrl={post.post_image}
+                  imageUrl={post.post_image ?? DEFAULT_POST_IMAGE}
                   name={post.name}
                   about={post.description}
                   tags={post.tags}

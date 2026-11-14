@@ -29,3 +29,11 @@ export interface Transition {
   status: ServiceStatus;
   notification_type: NotificationType;
 }
+
+export interface CreateRequestInput {
+  post_id: string;
+  meeting_address: string;
+  meeting_date: string;
+  hours: number;
+  request_image?: string | null;
+}

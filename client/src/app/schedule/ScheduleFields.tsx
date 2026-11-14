@@ -135,16 +135,19 @@ export function SelectField({ label, value, onChange, options, placeholder, erro
 }
 
 interface ImagePickerProps {
-  value: string | null;                     
-  onChange: (url: string | null) => void;   
+  value: string | null;
+  onSelect: (file: File) => void;
+  isUploading?: boolean;
+  error?: string | null;
 }
 
-//si algo se guarda mientas hace la prueba 
-export function ImagePicker({ value, onChange }: ImagePickerProps) {
+// La subida real la hace el hook useImageUpload; aquí solo se elige el archivo y se muestra el estado.
+export function ImagePicker({ value, onSelect, isUploading = false, error = null }: ImagePickerProps) {
   const id = useId();
   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) onChange(URL.createObjectURL(file));};
+    if (file) onSelect(file);
+  };
 
   return (
     <div>
@@ -170,6 +173,12 @@ export function ImagePicker({ value, onChange }: ImagePickerProps) {
 
       
       <input id={id} type="file" accept="image/*" onChange={handleFile} className="sr-only" />
+      {isUploading && <span className="mt-1 block text-[13px] text-white/70">Subiendo imagen...</span>}
+      {error && (
+        <span role="alert" className="mt-1 block text-[13px] text-truek-orange">
+          {error}
+        </span>
+      )}
     </div>
   );
 }

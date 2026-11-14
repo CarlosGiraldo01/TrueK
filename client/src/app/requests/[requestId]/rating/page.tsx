@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { Button, Logo, NavBar, StarRating, TextField, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
@@ -17,6 +18,8 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
   const { getUserById } = useUsers();
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const request = getRequest(requestId);
   const post = request ? getPostById(request.post_id) : undefined;
 
@@ -26,7 +29,33 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
     return <p className="m-auto text-sm text-truek-placeholder">No hay un servicio para calificar</p>;}
   const provider = getUserById(post.user_id);
 //esto hace que se guarden las estrellas y el cometario, si cerramos el pedido si ya lo leyo y la redireccion de la pagina de pago
-  const handleSend = () => {addRating(request.id, stars as Rating["rating"], comment.trim()); closeRequest(request.id); router.push(`/payment/${request.id}`);};
+  const handleSend = async () => {
+    if (isSubmitting) return;
+    setErrorMessage("");
+
+    const trimmed = comment.trim();
+    if (trimmed.length > 500) {
+      setErrorMessage("El comentario no puede superar 500 caracteres");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addRating(request.id, stars as Rating["rating"], trimmed);
+    } catch (err) {
+      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      setErrorMessage(
+        typeof serverMessage === "string" && serverMessage
+          ? serverMessage
+          : "No se pudo enviar tu calificación. Intenta de nuevo."
+      );
+      setIsSubmitting(false);
+      return;
+    }
+    // Solo tras guardar en el servidor se sigue el flujo existente.
+    closeRequest(request.id);
+    router.push(`/payment/${request.id}`);
+  };
 
   //esto retorna lo que se dibuja en pantalla
   return (//estilos
@@ -41,9 +70,13 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
 
       <TextField multiline label="Déjanos tu comentario" placeholder="Escribe aquí tu comentario..." value={comment} onChange={(e) => setComment(e.target.value)}className="mt-5"/>
 
+      {errorMessage && (
+        <p role="alert" className="mt-4 text-xs font-medium text-red-400">{errorMessage}</p>
+      )}
+
       <div className="mx-auto mt-8 w-full max-w-60">
-        <Button onClick={handleSend} disabled={stars === 0}>
-          Enviar
+        <Button onClick={handleSend} disabled={stars === 0 || isSubmitting}>
+          {isSubmitting ? "Enviando..." : "Enviar"}
         </Button>
       </div>
     </section>

@@ -6,7 +6,7 @@ import { useSession } from "./SessionContext";
 import { useNotifications } from "./NotificationsContext";
 import { usePosts } from "./PostsContext";
 import { useUsers } from "./UsersContext";
-import type {Notification,NotificationType,Quote,Rating,RequestAction,ServiceRequest,ServiceStatus,Transition,} from "@/types";
+import type {Notification,NotificationType,Quote,Rating,RequestAction,ServiceRequest,} from "@/types";
 //centraliza y administra la información y las funciones de las solicitudes de servicios de Truek
 // Espera antes de mostrar un aviso al entrar con un usuario (1000 = 1 segundo).
 const NOTICE_DELAY = 1500;
@@ -25,13 +25,6 @@ export interface ScheduleDraft {
 // Papel del usuario en una solicitud.
 export type RequestRole = "client" | "provider";
 
-// Aviso que espera a que entre el usuario que lo debe ver.
-interface PendingNotice {
-  userId: string;
-  requestId: string;
-  type: NotificationType;
-}
-
 interface RequestsContextValue {
   requests: ServiceRequest[];
   loading: boolean;
@@ -44,7 +37,7 @@ interface RequestsContextValue {
   quote: Quote | null; // Precio que calculó el servidor para el formulario.
   quoteLoading: boolean;
   quoteError: string | null;
-  createRequest: () => ServiceRequest | null;
+  createRequest: () => Promise<ServiceRequest>;
   lastCreatedId: string | null;
   acceptRequest: (id: string) => Promise<void>;
   rejectRequest: (id: string) => Promise<void>;
@@ -52,7 +45,7 @@ interface RequestsContextValue {
   closeRequest: (id: string) => void;
   getRating: (requestId: string) => Rating | undefined;
   getUserRating: (userId: string) => number;
-  addRating: (requestId: string, rating: Rating["rating"], comment: string) => void;
+  addRating: (requestId: string, rating: Rating["rating"], comment: string) => Promise<Rating>;
 }
 
 const RequestsContext = createContext<RequestsContextValue | null>(null);
@@ -79,7 +72,6 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
   const notifiedIncoming = useRef(new Set<string>()); // Avisos del servidor que ya se mostraron.
-  const pendingNotices = useRef<PendingNotice[]>([]); // Avisos para el otro usuario.
   const requestsRef = useRef<ServiceRequest[]>([]); // Copia para los temporizadores.
 
   // Al abrir la app pide las solicitudes, las calificaciones y los promedios.
@@ -171,77 +163,47 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   const fromServer = requests.find((r) => r.id === serverCurrentId && isVisible(r));
   const currentRequest = fromSession ?? fromServer;
 
-  const updateStatus = useCallback((id: string, status: ServiceStatus) => {
-    setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-  }, []);
-
   // Pone la solicitud de primera en la lista de la sesión.
   const markInSession = useCallback((id: string) => {
     setSessionIds((prev) => [id, ...prev.filter((item) => item !== id)]);
   }, []);
 
-  // Deja guardado un aviso para que lo vea el otro usuario cuando entre.
-  const addNotice = useCallback((notice: PendingNotice) => {
-    pendingNotices.current = [...pendingNotices.current, notice];
-  }, []);
-
-  // Muestra un aviso. Si es una solicitud nueva se ve el cliente; si no, el prestador.
+  // Muestra un aviso con la otra persona de la solicitud (la que no es el usuario actual).
   const showNotice = useCallback(
     (request: ServiceRequest, type: NotificationType) => {
-      const isIncoming = type === "incoming_services";
-      const personId = isIncoming ? request.client_id : request.provider_id;
+      const isClient = request.client_id === userId;
+      const personId = isClient ? request.provider_id : request.client_id;
       const person = personId ? getUserById(personId) : undefined;
       const post = getPostById(request.post_id);
+      // Calificar es solo del cliente.
+      const href =
+        type === "services_finished" && isClient ? `/requests/${request.id}/rating` : `/requests/${request.id}`;
 
       showNotification({
         type,
-        name: person?.name ?? (isIncoming ? "Cliente" : "Prestador"),
+        name: person?.name ?? (isClient ? "Prestador" : "Cliente"),
         avatarUrl: person?.profile_picture ?? undefined,
-        tag: isIncoming ? post?.tags[0] : undefined,
-        href: type === "services_finished" ? `/requests/${request.id}/rating` : `/requests/${request.id}`,
+        tag: type === "incoming_services" ? post?.tags[0] : undefined,
+        href,
       });
     },
-    [showNotification, getUserById, getPostById],
+    [showNotification, getUserById, getPostById, userId],
   );
 
-  // Cuando entra un usuario, le muestra los avisos que le dejaron.
-  useEffect(() => {
-    if (!userId) return;
-
-    const mine = pendingNotices.current.filter((notice) => notice.userId === userId);
-    pendingNotices.current = pendingNotices.current.filter((notice) => notice.userId !== userId);
-
-    mine.forEach((notice) => {
-      schedule(() => {
-        const request = requestsRef.current.find((r) => r.id === notice.requestId);
-        if (request) showNotice(request, notice.type);
-      }, NOTICE_DELAY);
-    });
-  }, [userId, schedule, showNotice]);
-
-  // Le pregunta al servidor a qué estado pasa la solicitud con esa acción.
-  // Si el cambio no se puede, el servidor responde 400 y no se cambia nada.
+  // Pide la acción al servidor, que valida el cambio y crea el aviso para la otra parte.
+  // Los errores se propagan a quien llama.
   const changeStatus = useCallback(
-    async (id: string, action: RequestAction) => {
-      const request = requestsRef.current.find((r) => r.id === id);
-      if (!request) return;
+    async (id: string, action: RequestAction): Promise<void> => {
+      if (!userId) throw new Error("Debes iniciar sesión");
 
-      try {
-        const res = await api.get<Transition>("/requests/transition", {
-          params: { status: request.status, action },
-        });
-        updateStatus(id, res.data.status);
-        markInSession(id);
+      const res = await api.patch<ServiceRequest>(`/requests/${id}`, { user_id: userId, action });
+      const updated = res.data;
 
-        // Si quien hizo el cambio es el prestador, el aviso que dijo el servidor es para el cliente.
-        if (request.provider_id === userId) {
-          addNotice({ userId: request.client_id, requestId: id, type: res.data.notification_type });
-        }
-      } catch {
-        // No se pudo hacer el cambio.
-      }
+      setRequests((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      requestsRef.current = requestsRef.current.map((r) => (r.id === updated.id ? updated : r));
+      markInSession(id);
     },
-    [updateStatus, markInSession, addNotice, userId],
+    [userId, markInSession],
   );
 
   const getUserRating = useCallback((id: string) => averages[id] ?? 0, [averages]);
@@ -261,34 +223,34 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   }, []);
 
   // Crea la solicitud con el formulario y el precio que dio el servidor.
-  const createRequest = useCallback(() => {
-    if (!draft || !userId || !quote) return null;
+  // El precio y el aviso al prestador los crea el servidor; los errores se propagan a quien llama.
+  const createRequest = useCallback(async (): Promise<ServiceRequest> => {
+    if (!userId) throw new Error("Debes iniciar sesión para solicitar un servicio");
+    if (!draft) throw new Error("Primero completa los datos del servicio");
 
-    const request: ServiceRequest = {
-      id: `r${Date.now()}`,
+    // El borrador no tiene zona horaria: se interpreta en la hora local del navegador y se envía en UTC.
+    const meetingDate = new Date(`${draft.date}T${draft.time}`);
+    if (Number.isNaN(meetingDate.getTime())) throw new Error("La fecha u hora del servicio no es válida");
+
+    const res = await api.post<ServiceRequest>("/requests", {
+      user_id: userId,
       post_id: draft.post_id,
-      client_id: userId,
-      provider_id: quote.provider_id,
       meeting_address: draft.meeting_address,
-      meeting_date: `${draft.date}T${draft.time}`,
+      meeting_date: meetingDate.toISOString(),
       hours: draft.hours,
-      status: "pending",
       request_image: draft.request_image,
-      payment_confirmed: false,
-      price: quote.total,
-    };
-    setRequests((prev) => [request, ...prev]);
-    requestsRef.current = [request, ...requestsRef.current];
-    markInSession(request.id);
-    setLastCreatedId(request.id);
+    });
+    const created = res.data;
+
+    setRequests((prev) => [created, ...prev.filter((r) => r.id !== created.id)]);
+    requestsRef.current = [created, ...requestsRef.current.filter((r) => r.id !== created.id)];
+    markInSession(created.id);
+    setLastCreatedId(created.id);
     setDraft(null);
     setQuote(null);
 
-    // Al prestador le llega el aviso de solicitud nueva cuando entre.
-    addNotice({ userId: quote.provider_id, requestId: request.id, type: "incoming_services" });
-
-    return request;
-  }, [draft, userId, quote, markInSession, addNotice]);
+    return created;
+  }, [draft, userId, markInSession]);
 
   // Oculta una solicitud de la pestaña Servicios, solo para este usuario.
   const closeRequest = useCallback(
@@ -310,22 +272,55 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     [ratings],
   );
 
-  // Guarda la calificación del cliente al prestador (reemplaza si ya existía).
-  const addRating = useCallback((requestId: string, rating: Rating["rating"], comment: string) => {
-    const request = requestsRef.current.find((r) => r.id === requestId);
-    setRatings((prev) => [
-      ...prev.filter((r) => r.service_request_id !== requestId),
-      { id: `g${Date.now()}`, service_request_id: requestId, rated_user_id: request?.provider_id ?? "", rating, comment },
-    ]);
-  }, []);
+  // Envía la calificación al servidor; los errores se propagan a quien llama.
+  const addRating = useCallback(
+    async (requestId: string, rating: Rating["rating"], comment: string): Promise<Rating> => {
+      if (!userId) throw new Error("Debes iniciar sesión para calificar");
 
-  // Pide al servidor los avisos de "solicitud nueva" que ya existían (data.mock) y los muestra una vez.
+      const res = await api.post<Rating>("/ratings", {
+        user_id: userId,
+        service_request_id: requestId,
+        rating,
+        comment,
+      });
+      const created = res.data;
+      setRatings((prev) => [...prev.filter((r) => r.id !== created.id), created]);
+
+      // El promedio lo calcula el servidor; si falla el refresco se mantiene el anterior.
+      try {
+        const averagesRes = await api.get<Record<string, number>>("/ratings/averages");
+        setAverages(averagesRes.data);
+      } catch {
+        // La calificación ya se guardó; no se muestra error por el promedio.
+      }
+      return created;
+    },
+    [userId],
+  );
+
+  // El aviso solo se muestra si la solicitud sigue en el estado que lo originó.
+  const isNoticeRelevant = (request: ServiceRequest, type: NotificationType): boolean => {
+    switch (type) {
+      case "incoming_services":
+        return request.status === "pending";
+      case "request_accepted":
+        return request.status === "accepted";
+      case "request_rejected":
+        return request.status === "rejected";
+      case "services_finished":
+        return request.status === "finished" && !request.payment_confirmed;
+      default:
+        return false;
+    }
+  };
+
+  // Pide al servidor los avisos del usuario y muestra cada uno una vez por sesión.
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
 
     api
-      .get<Notification[]>("/notifications", { params: { user_id: userId, type: "incoming_services" } })
+      .get<Notification[]>("/notifications", { params: { user_id: userId } })
       .then((res: { data: Notification[] }) => {
         if (cancelled) return;
         res.data.forEach((notification) => {
@@ -334,8 +329,7 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
 
           schedule(() => {
             const request = requestsRef.current.find((r) => r.id === notification.service_request_id);
-            // Si ya se aceptó o rechazó, el aviso ya no tiene sentido.
-            if (!request || request.status !== "pending") return;
+            if (!request || !isNoticeRelevant(request, notification.type)) return;
             showNotice(request, notification.type);
           }, NOTICE_DELAY);
         });

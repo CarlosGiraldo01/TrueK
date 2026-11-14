@@ -1,5 +1,6 @@
 "use client";
 
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { useRouter } from "next/navigation";
 import { ChevronLeftIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { StarRating } from "@/components/ui/StarRating";
@@ -161,7 +162,7 @@ export default function ProfilePage() {
                       <div className="aspect-[4/3] w-full overflow-hidden rounded-[12px] bg-black">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={post.post_image}
+                          src={post.post_image ?? DEFAULT_POST_IMAGE}
                           alt={post.name}
                           className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-200"
                         />

@@ -1,7 +1,9 @@
 
 "use client";
 
-import { use } from "react";
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
+import { use, useState } from "react";
+import axios from "axios";
 import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
@@ -29,6 +31,8 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const post = getPostById(postId);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   if (!post) notFound();
 
@@ -63,9 +67,22 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
   const pricePerHour = quote.price_per_hour;
   const total = quote.total;
 
-  const handleConfirm = () => {
-    const request = createRequest();//ermite confirmar la solicitud usando
-    if (request) router.replace(`/schedule/${postId}/success`);
+  const handleConfirm = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await createRequest();
+      router.replace(`/schedule/${postId}/success`);
+    } catch (err) {
+      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      setSubmitError(
+        typeof serverMessage === "string" && serverMessage
+          ? serverMessage
+          : "No se pudo crear la solicitud. Intenta de nuevo.",
+      );
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -76,7 +93,7 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
       <main className="flex-1 space-y-5 px-5 pb-8 pt-6">
         <ServiceSummaryCard
           title="Resumen del servicio"
-          imageUrl={draft.request_image ?? post.post_image}
+          imageUrl={draft.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE}
           providerName={provider?.name ?? "Prestador"}
           hours={draft.hours}
           pricePerHour={pricePerHour}
@@ -107,7 +124,14 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
         </section>
 
         <div className="px-12 pt-2">
-          <Button onClick={handleConfirm}>Confirmar</Button>
+          {submitError && (
+            <p role="alert" className="mb-3 text-center text-sm text-truek-orange">
+              {submitError}
+            </p>
+          )}
+          <Button onClick={handleConfirm} disabled={isSubmitting}>
+            {isSubmitting ? "Enviando..." : "Confirmar"}
+          </Button>
         </div>
       </main>
 

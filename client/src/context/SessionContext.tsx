@@ -2,14 +2,14 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { useUsers } from "./UsersContext";
-import type { User, UserRole } from "@/types";
+import type { UpdateUserInput, User, UserRole } from "@/types";
 
 interface SessionContextValue {
   user: User | null;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   switchRole: () => void;
-  updateUser: (updatedData: Partial<User>) => void;
+  updateUser: (updatedData: UpdateUserInput) => Promise<User>;
   login: (userId: string) => void;
   logout: () => void;
 }
@@ -113,9 +113,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   // Actualizar datos del usuario actual
-  const handleUpdateUser = (updatedData: Partial<User>) => {
-    if (!userId) return;
-    updateUser(userId, updatedData);
+  const handleUpdateUser = async (updatedData: UpdateUserInput): Promise<User> => {
+    if (!userId) throw new Error("Debes iniciar sesión para editar tu perfil");
+    return updateUser(userId, updatedData);
   };
 
   const value: SessionContextValue = {

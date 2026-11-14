@@ -1,5 +1,5 @@
 import { pool } from "../../db/pool";
-import type { Post } from "./posts.types";
+import type { CreatePostData, Post } from "./posts.types";
 
 const POST_SELECT = `
   select
@@ -33,6 +33,36 @@ export const postsRepository = {
       [id]
     );
     return rows[0];
+  },
+
+  // Un solo statement con CTE: el post y sus tags se insertan de forma atómica.
+  create: async (data: CreatePostData): Promise<string> => {
+    const { rows } = await pool.query(
+      `with new_post as (
+         insert into posts (user_id, name, description, offer, location, latitude, longitude, post_image, price)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         returning id
+       ),
+       new_tags as (
+         insert into post_tags (post_id, tag_id)
+         select new_post.id, t.id from new_post
+         join tags t on t.name = any($10::text[])
+       )
+       select id from new_post`,
+      [
+        data.user_id,
+        data.name,
+        data.description,
+        data.offer,
+        data.location,
+        data.latitude,
+        data.longitude,
+        data.post_image ?? null,
+        data.price,
+        data.tags,
+      ]
+    );
+    return rows[0].id;
   },
 
   findTags: async (): Promise<string[]> => {

@@ -1,3 +1,4 @@
+import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import Link from "next/link";
 import { ChatBubbleLeftEllipsisIcon } from "@heroicons/react/24/outline";
 import type { RequestRole } from "../../context/RequestContext";
@@ -43,7 +44,7 @@ export function RequestCard({ request, post, person, role, chatHref }: RequestCa
         <div className="w-[42%] shrink-0 bg-truek-surface">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={request.request_image ?? post.post_image}
+            src={request.request_image ?? post.post_image ?? DEFAULT_POST_IMAGE}
             alt={post.name}
             className="h-full min-h-28 w-full object-cover object-center"
           />

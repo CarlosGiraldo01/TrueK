@@ -18,7 +18,7 @@ const formatTime = (iso: string) =>
   });
 
 export function MessageList({ currentUserId, clientId }: MessageListProps) {
-  const { messages } = useChat();
+  const { messages, loading, error } = useChat();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // And this show the newest message, making a coherent order in the chat
@@ -28,7 +28,13 @@ export function MessageList({ currentUserId, clientId }: MessageListProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-      {messages.length === 0 && (
+      {loading && (
+        <p className="m-auto text-sm text-truek-placeholder">Cargando mensajes...</p>
+      )}
+      {!loading && error && (
+        <p role="alert" className="m-auto text-sm text-red-400">{error}</p>
+      )}
+      {!loading && !error && messages.length === 0 && (
         <p className="m-auto text-sm text-truek-placeholder">Escribe el primer mensaje</p>
       )}
       {messages.length > 0 && (

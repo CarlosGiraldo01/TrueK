@@ -2,10 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 import { ChevronLeftIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { NavBar } from "@/components/ui/NavBar";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { IMAGE_MIME_TYPES } from "@/lib/uploads";
 
 // Vista para armar y publicar un nuevo truek (rol proveedor)
 export default function CreatePostPage() {
@@ -32,8 +35,8 @@ export default function CreatePostPage() {
   // Categorías elegidas (máximo 3)
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  // Imagen en base64 para que no se pierda al recargar
-  const [imagePreview, setImagePreview] = useState<string>("");
+  // Subida inmediata de la imagen; el post solo guarda la URL resultante
+  const { imageUrl, previewUrl, isUploading, error: imageError, selectFile } = useImageUpload(user?.id);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -51,24 +54,21 @@ export default function CreatePostPage() {
     });
   };
 
-  // Convertir fotito a base64
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setImagePreview(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    selectFile(e.target.files?.[0] ?? null);
+    // Permite volver a elegir el mismo archivo
+    e.target.value = "";
   };
 
   // Validar y mandar el post al contexto global
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+
+    if (isUploading) {
+      setErrorMessage("Espera a que termine de subir la imagen.");
+      return;
+    }
 
     if (!formData.location.trim()) {
       setErrorMessage("Por favor ingresa la ciudad y zona.");
@@ -87,34 +87,45 @@ export default function CreatePostPage() {
       return;
     }
 
+    if (!user) {
+      setErrorMessage("Debes iniciar sesión para publicar.");
+      return;
+    }
+
+    // Se aceptan puntos como separador de miles ("50.000")
+    const priceNum = Number(formData.price.trim().replace(/\./g, ""));
+    if (!Number.isInteger(priceNum) || priceNum < 100 || priceNum > 50000) {
+      setErrorMessage("El precio debe estar entre 100 y 50.000.");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    const cleanPrice = formData.price.trim();
-    const priceNum = Number(cleanPrice.replace(/\D/g, "")) || 5000;
-    const authorId = user?.id ?? "122baf6d-1d30-44ee-8ee1-77a7695d4ff1";
-    const authorName = user?.name ?? "Valentina Arias";
-    const authorAge = user?.age ? (user.age + " años") : "24 años";
+    try {
+      const created = await addPost({
+        user_id: user.id,
+        description: formData.about.trim(),
+        offer: formData.offer.trim(),
+        location: formData.location.trim(),
+        tags: selectedTags,
+        ...(imageUrl ? { post_image: imageUrl } : {}),
+        price: priceNum,
+        latitude: 3.4516,
+        longitude: -76.532,
+      });
 
-    const newPost = addPost({
-      user_id: authorId,
-      name: authorName,
-      description: formData.about.trim(),
-      offer: formData.offer.trim(),
-      tags: selectedTags,
-      location: formData.location.trim(),
-      latitude: 3.4516,
-      longitude: -76.532,
-      post_image: imagePreview || "/mock/valentina.png",
-      price: priceNum,
-      age: authorAge,
-      rating: 4.7,
-      published_ago: "Publicado hace un momento",
-    });
-
-    setIsSubmitting(false);
-
-    // Redirigir directo al detalle del post recién creado
-    router.push("/post/" + newPost.id + "?created=true");
+      // Redirigir directo al detalle del post recién creado
+      router.push("/post/" + created.id + "?created=true");
+    } catch (err) {
+      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
+      setErrorMessage(
+        typeof serverMessage === "string" && serverMessage
+          ? serverMessage
+          : "No se pudo crear la publicación. Intenta de nuevo."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -147,7 +158,7 @@ export default function CreatePostPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept={IMAGE_MIME_TYPES.join(",")}
               onChange={handleImageChange}
               className="hidden"
             />
@@ -156,11 +167,11 @@ export default function CreatePostPage() {
               onClick={() => fileInputRef.current?.click()}
               className="group relative flex aspect-[16/10] w-full flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed border-[#3A3A39] bg-[#1F1F1E] transition-all hover:border-[#FF5E1B] cursor-pointer"
             >
-              {imagePreview ? (
+              {previewUrl ? (
                 <>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={imagePreview}
+                    src={previewUrl}
                     alt="Vista previa de imagen"
                     className="h-full w-full object-cover"
                   />
@@ -179,6 +190,12 @@ export default function CreatePostPage() {
                 </div>
               )}
             </button>
+            {isUploading && (
+              <p className="text-xs font-medium text-[#8A8A8A]">Subiendo imagen...</p>
+            )}
+            {imageError && (
+              <p role="alert" className="text-xs font-medium text-red-400">{imageError}</p>
+            )}
           </div>
 
           {/* Input Ciudad y zona */}
@@ -284,7 +301,7 @@ export default function CreatePostPage() {
           {/* Botón de envío */}
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUploading}
             className="mt-2 flex h-12 w-full cursor-pointer items-center justify-center rounded-[14px] bg-[#FF5E1B] text-base font-bold text-black shadow-lg transition-transform hover:bg-[#fa530f] active:scale-95 disabled:opacity-50"
           >
             {isSubmitting ? "Creando..." : "Crear"}
