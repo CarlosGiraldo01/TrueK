@@ -32,9 +32,16 @@ const requestsRepository = {
   })),
 };
 
+// El socket se simula: los tests no se conectan a Supabase
+const realtime = {
+  NOTIFICATION_EVENT: "new-notification",
+  broadcastToUser: mock.fn(async (_userId: string, _event: string, _payload: object): Promise<void> => undefined),
+};
+
 mock.module("../../src/features/posts/posts.repository", { exports: { postsRepository } });
 mock.module("../../src/features/requests/requests.repository", { exports: { requestsRepository } });
 mock.module("../../src/features/uploads/uploads.repository", { exports: { uploadsRepository: {} } });
+mock.module("../../src/config/realtime", { exports: realtime });
 
 let requestsService: typeof import("../../src/features/requests/requests.service").requestsService;
 
@@ -48,6 +55,7 @@ beforeEach(() => {
   postsRepository.findById.mock.mockImplementation(async () => ({ id: POST, user_id: PROVIDER }) as Post);
   requestsRepository.findById.mock.mockImplementation(async () => makeReq("pending"));
   requestsRepository.updateStatus.mock.resetCalls();
+  realtime.broadcastToUser.mock.resetCalls();
   requestsRepository.updateStatus.mock.mockImplementation(async (_i, _e, newStatus) => ({
     ...makeReq("pending"),
     status: newStatus,
@@ -73,6 +81,31 @@ test("provider accepts a pending request and notifies the client", async () => {
   ]);
   assert.equal(result.status, "accepted");
   assert.equal(result.provider_id, PROVIDER);
+});
+
+test("accept sends the live notification to the client by socket", async () => {
+  const result = await requestsService.transition(PROVIDER, REQ, "accept");
+
+  assert.equal(realtime.broadcastToUser.mock.callCount(), 1);
+  assert.deepEqual(realtime.broadcastToUser.mock.calls[0].arguments, [
+    CLIENT,
+    "new-notification",
+    { type: "request_accepted", message: "Ha aceptado tu solicitud", request: result },
+  ]);
+});
+
+test("finish by the client sends the socket event to the provider", async () => {
+  setStatus("accepted");
+  await requestsService.transition(CLIENT, REQ, "finish");
+
+  assert.equal(realtime.broadcastToUser.mock.calls[0].arguments[0], PROVIDER);
+});
+
+test("no socket event is sent when the transition is not allowed", async () => {
+  setStatus("finished");
+
+  await assert.rejects(requestsService.transition(PROVIDER, REQ, "accept"));
+  assert.equal(realtime.broadcastToUser.mock.callCount(), 0);
 });
 
 test("provider rejects a pending request and notifies the client", async () => {

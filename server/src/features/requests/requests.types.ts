@@ -30,6 +30,13 @@ export interface Transition {
   notification_type: NotificationType;
 }
 
+// Lo que viaja por el socket cuando a un usuario le llega un aviso nuevo
+export interface RequestNotificationEvent {
+  type: NotificationType;
+  message: string;
+  request: RequesttWithProvider;
+}
+
 export interface CreateRequestInput {
   post_id: string;
   meeting_address: string;

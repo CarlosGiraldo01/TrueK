@@ -2,8 +2,9 @@ import { requestsRepository } from "./requests.repository";
 import Boom from "@hapi/boom";
 import { postsRepository } from "../posts/posts.repository";
 import { uploadsService } from "../uploads/uploads.service";
+import { broadcastToUser, NOTIFICATION_EVENT } from "../../config/realtime";
 import type { NotificationType } from "../notifications/notifications.types";
-import type {CreateRequestInput,Quote,RequestAction,RequesttWithProvider as RequestWithProvider,ServiceRequest,ServiceStatus,Transition,} from "./requests.types";
+import type {CreateRequestInput,Quote,RequestAction,RequestNotificationEvent,RequesttWithProvider as RequestWithProvider,ServiceRequest,ServiceStatus,Transition,} from "./requests.types";
 
 // Precio por hora si la publicacion no tiene uno
 const DEFAULT_PRICE_PER_HOUR = 10000;
@@ -116,8 +117,17 @@ const create = async (clientId: string, input: CreateRequestInput): Promise<Requ
     provider_id: post.user_id,
     notification_message: INCOMING_SERVICES_MESSAGE,
   });
+  const created = { ...request, provider_id: post.user_id };
 
-  return { ...request, provider_id: post.user_id };
+  // Socket: le avisa en vivo al prestador que tiene una solicitud nueva
+  const event: RequestNotificationEvent = {
+    type: "incoming_services",
+    message: INCOMING_SERVICES_MESSAGE,
+    request: created,
+  };
+  await broadcastToUser(post.user_id, NOTIFICATION_EVENT, event);
+
+  return created;
 };
 
 // Dice a que estado pasa la solicitud. Si la accion no se puede hacer devuelve undefined
@@ -168,8 +178,17 @@ const transition = async (actorId: string, id: string, action: RequestAction): P
     message,
   });
   if (!updated) throw Boom.conflict("La solicitud cambió de estado, vuelve a intentarlo");
+  const result = { ...updated, provider_id: providerId };
 
-  return { ...updated, provider_id: providerId };
+  // Socket: le avisa en vivo a la otra parte (el aviso ya quedó guardado en la base de datos)
+  const event: RequestNotificationEvent = {
+    type: next.notification_type,
+    message,
+    request: result,
+  };
+  await broadcastToUser(recipientId, NOTIFICATION_EVENT, event);
+
+  return result;
 };
 
 export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,transition,};

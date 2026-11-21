@@ -33,9 +33,16 @@ const requestsRepository = {
   })),
 };
 
+// El socket se simula: los tests no se conectan a Supabase
+const realtime = {
+  NOTIFICATION_EVENT: "new-notification",
+  broadcastToUser: mock.fn(async (_userId: string, _event: string, _payload: object): Promise<void> => undefined),
+};
+
 mock.module("../../src/features/posts/posts.repository", { exports: { postsRepository } });
 mock.module("../../src/features/requests/requests.repository", { exports: { requestsRepository } });
 mock.module("../../src/features/uploads/uploads.repository", { exports: { uploadsRepository: {} } });
+mock.module("../../src/config/realtime", { exports: realtime });
 
 let server: Server;
 let baseUrl: string;
