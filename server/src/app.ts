@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { config } from './config';
+import { authRouter } from './features/auth/auth.router';
 import { usersRouter } from './features/users/users.router';
 import { postsRouter } from './features/posts/posts.router';
 import { requestsRouter } from './features/requests/requests.router';
@@ -20,12 +21,13 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true });
 });
 //rutas 
+app.use('/auth', authRouter);
 app.use('/users', usersRouter);
 app.use('/posts', postsRouter);
 app.use('/requests', requestsRouter);
 app.use('/ratings', ratingsRouter);
 app.use('/messages', messagesRouter);
-app.use('/notifications',  notificationsRouter);
+app.use('/notifications', notificationsRouter);
 app.use('/uploads', uploadsRouter);
 app.use('/geocode', geoRouter);
 
