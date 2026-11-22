@@ -6,6 +6,7 @@ import axios from "axios";
 import { ChevronLeftIcon, CameraIcon } from "@heroicons/react/24/outline";
 import { useSession } from "@/context/SessionContext";
 import { NavBar } from "@/components/ui/NavBar";
+import { PrivateRoute } from "@/components/ui/PrivateRoute";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { LocationResolved } from "@/components/ui/LocationResolved";
 import { useGeocode } from "@/hooks/useGeocode";
@@ -13,8 +14,7 @@ import { GEOCODE_MIN_LENGTH } from "@/lib/geocode";
 import { IMAGE_MIME_TYPES } from "@/lib/uploads";
 import type { UpdateUserInput } from "@/types";
 
-// Vista para editar los datos de perfil del usuario
-export default function EditProfilePage() {
+function EditProfileContent() {
   const router = useRouter();
   const { user, updateUser, logout } = useSession();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,7 +121,7 @@ export default function EditProfilePage() {
   // Cerrar sesión y mandar al login
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    router.replace("/login");
   };
 
   return (
@@ -297,5 +297,14 @@ export default function EditProfilePage() {
 
       <NavBar activeId="perfil" />
     </div>
+  );
+}
+
+// Vista protegida para editar los datos de perfil del usuario
+export default function EditProfilePage() {
+  return (
+    <PrivateRoute>
+      <EditProfileContent />
+    </PrivateRoute>
   );
 }
