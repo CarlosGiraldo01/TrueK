@@ -2,7 +2,7 @@ import { requestsRepository } from "./requests.repository";
 import Boom from "@hapi/boom";
 import { postsRepository } from "../posts/posts.repository";
 import { uploadsService } from "../uploads/uploads.service";
-import { broadcastToUser, NOTIFICATION_EVENT } from "../../config/realtime";
+import { broadcastToUser, NOTIFICATION_EVENT, PAYMENT_EVENT } from "../../config/realtime";
 import type { NotificationType } from "../notifications/notifications.types";
 import type {CreateRequestInput,Quote,RequestAction,RequestNotificationEvent,RequesttWithProvider as RequestWithProvider,ServiceRequest,ServiceStatus,Transition,} from "./requests.types";
 
@@ -191,4 +191,33 @@ const transition = async (actorId: string, id: string, action: RequestAction): P
   return result;
 };
 
-export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,transition,};
+// El cliente paga el servicio terminado. El server revisa todo y avisa al prestador en vivo.
+const pay = async (actorId: string, id: string): Promise<RequestWithProvider> => {
+  const request = await requestsRepository.findById(id);
+  if (!request) throw Boom.notFound("Solicitud no encontrada");
+
+  if (actorId !== request.client_id) {
+    throw Boom.forbidden("Solo el cliente puede pagar este servicio");
+  }
+  if (request.status !== "finished") {
+    throw Boom.conflict("El servicio aún no ha terminado");
+  }
+  if (request.payment_confirmed) {
+    throw Boom.conflict("Este servicio ya fue pagado");
+  }
+
+  const updated = await requestsRepository.confirmPayment(id);
+  if (!updated) throw Boom.conflict("Este servicio ya fue pagado");
+
+  const { provider_id: providerId } = await addProvider(updated);
+  const result = { ...updated, provider_id: providerId };
+
+  // Socket: al prestador le cambia en vivo "Esperando el pago" por "Pagado"
+  if (providerId) {
+    await broadcastToUser(providerId, PAYMENT_EVENT, result);
+  }
+
+  return result;
+};
+
+export const requestsService = {getAll,getById,getCurrent,getQuote,getTransition,create,transition,pay,};

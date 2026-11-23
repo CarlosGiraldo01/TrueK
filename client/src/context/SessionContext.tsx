@@ -1,112 +1,122 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { api } from "@/lib/api";
 import { useUsers } from "./UsersContext";
 import type { UpdateUserInput, User, UserRole } from "@/types";
 
 interface SessionContextValue {
   user: User | null;
+  isReady: boolean;
+  isAuthenticated: boolean;
   activeRole: UserRole;
   setActiveRole: (role: UserRole) => void;
   switchRole: () => void;
   updateUser: (updatedData: UpdateUserInput) => Promise<User>;
-  login: (userId: string) => void;
+  login: (email: string, password: string) => Promise<User>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    role?: UserRole,
+  ) => Promise<User>;
   logout: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
 
-// Usuario por defecto al abrir la app por primera vez (Valentina)
-const DEFAULT_USER_ID = "122baf6d-1d30-44ee-8ee1-77a7695d4ff1";
-
-const SESSION_USER_KEY = "truek_session_user_id";
+const SESSION_TOKEN_KEY = "truek_token";
+const SESSION_USER_KEY = "truek_user";
 const SESSION_ROLE_KEY = "truek_session_active_role";
 
-// Proveedor para manejar la sesión y el rol del usuario actual
+// Proveedor para manejar la sesión real y el rol del usuario actual
 export function SessionProvider({ children }: { children: ReactNode }) {
   const { getUserById, updateUser } = useUsers();
 
-  // Rol activo guardado en localStorage
-  const [overrideRole, setOverrideRole] = useState<UserRole | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(SESSION_ROLE_KEY) as UserRole | null;
-        if (saved === "provider" || saved === "client") return saved;
-      } catch (e) {
-        console.error("Error reading role from storage:", e);
-      }
-    }
-    return null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [overrideRole, setOverrideRole] = useState<UserRole | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
-  // ID del usuario logueado actualmente
-  const [userId, setUserId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = localStorage.getItem(SESSION_USER_KEY);
-        if (saved) return saved;
-      } catch (e) {
-        console.error("Error reading session from storage:", e);
-      }
-    }
-    return DEFAULT_USER_ID;
-  });
-
-  // Guardar sesión en localStorage cuando cambie el usuario o el rol
+  // Cargar sesión guardada al abrir la app
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        if (userId) {
-          localStorage.setItem(SESSION_USER_KEY, userId);
-        } else {
-          localStorage.removeItem(SESSION_USER_KEY);
-        }
-        if (overrideRole) {
-          localStorage.setItem(SESSION_ROLE_KEY, overrideRole);
-        } else {
-          localStorage.removeItem(SESSION_ROLE_KEY);
-        }
-      } catch (e) {
-        console.error("Error saving session to storage:", e);
-      }
-    }
-  }, [userId, overrideRole]);
+    try {
+      const savedToken = localStorage.getItem(SESSION_TOKEN_KEY);
+      const savedUser = localStorage.getItem(SESSION_USER_KEY);
+      const savedRole = localStorage.getItem(SESSION_ROLE_KEY) as UserRole | null;
 
-  const user = userId ? (getUserById(userId) ?? null) : null;
+      if (savedToken && savedUser) {
+        setCurrentUser(JSON.parse(savedUser) as User);
+      }
+      if (savedRole === "provider" || savedRole === "client") {
+        setOverrideRole(savedRole);
+      }
+    } catch (e) {
+      console.error("Error reading session from storage:", e);
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      localStorage.removeItem(SESSION_USER_KEY);
+    } finally {
+      setIsReady(true);
+    }
+  }, []);
+
+  // Sincroniza con UsersContext si hay datos más recientes, sin perder el usuario recién creado
+  const user = currentUser ? (getUserById(currentUser.id) ?? currentUser) : null;
   const activeRole: UserRole = overrideRole ?? user?.role ?? "client";
 
-  // Cambiar de rol y asignar el usuario representativo (u2 para proveedor, u3 para cliente)
-  const handleSetRole = (role: UserRole) => {
-    setOverrideRole(role);
-    if (role === "provider") {
-      setUserId("122baf6d-1d30-44ee-8ee1-77a7695d4ff1");
-    } else {
-      setUserId("744da244-6cad-4f07-afca-68dde5c7fb3b");
-    }
+  // Iniciar sesión real contra el servidor
+  const handleLogin = async (email: string, password: string): Promise<User> => {
+    const { data } = await api.post<{ token: string; user: User }>("/auth/login", {
+      email,
+      password,
+    });
+    localStorage.setItem(SESSION_TOKEN_KEY, data.token);
+    localStorage.setItem(SESSION_USER_KEY, JSON.stringify(data.user));
+    localStorage.setItem(SESSION_ROLE_KEY, data.user.role);
+    setCurrentUser(data.user);
+    setOverrideRole(data.user.role);
+    return data.user;
   };
 
-  // Iniciar sesión con un ID específico
-  const handleLogin = (id: string) => {
-    setUserId(id);
-    const targetUser = getUserById(id);
-    if (targetUser) {
-      setOverrideRole(targetUser.role);
-    } else {
-      setOverrideRole(null);
-    }
+  // Crear cuenta nueva en el servidor e iniciar sesión
+  const handleRegister = async (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole = "client",
+  ): Promise<User> => {
+    const { data } = await api.post<{ token: string; user: User }>("/auth/register", {
+      name,
+      email,
+      password,
+      role,
+    });
+    localStorage.setItem(SESSION_TOKEN_KEY, data.token);
+    localStorage.setItem(SESSION_USER_KEY, JSON.stringify(data.user));
+    localStorage.setItem(SESSION_ROLE_KEY, data.user.role);
+    setCurrentUser(data.user);
+    setOverrideRole(data.user.role);
+    return data.user;
   };
 
-  // Cerrar sesión y limpiar el almacenamiento
+  // Cerrar sesión y borrar todo el almacenamiento
   const handleLogout = () => {
-    setUserId(null);
+    setCurrentUser(null);
     setOverrideRole(null);
     if (typeof window !== "undefined") {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
       localStorage.removeItem(SESSION_USER_KEY);
       localStorage.removeItem(SESSION_ROLE_KEY);
     }
   };
 
-  // Cambiar rápido entre proveedor y cliente
+  // Cambiar vista entre cliente y prestador para el usuario actual
+  const handleSetRole = (role: UserRole) => {
+    setOverrideRole(role);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(SESSION_ROLE_KEY, role);
+    }
+  };
+
   const handleSwitchRole = () => {
     const nextRole: UserRole = activeRole === "provider" ? "client" : "provider";
     handleSetRole(nextRole);
@@ -114,17 +124,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   // Actualizar datos del usuario actual
   const handleUpdateUser = async (updatedData: UpdateUserInput): Promise<User> => {
-    if (!userId) throw new Error("Debes iniciar sesión para editar tu perfil");
-    return updateUser(userId, updatedData);
+    if (!user) throw new Error("Debes iniciar sesión para editar tu perfil");
+    const updated = await updateUser(user.id, updatedData);
+    setCurrentUser(updated);
+    localStorage.setItem(SESSION_USER_KEY, JSON.stringify(updated));
+    return updated;
   };
 
   const value: SessionContextValue = {
     user,
+    isReady,
+    isAuthenticated: Boolean(user),
     activeRole,
     setActiveRole: handleSetRole,
     switchRole: handleSwitchRole,
     updateUser: handleUpdateUser,
     login: handleLogin,
+    register: handleRegister,
     logout: handleLogout,
   };
 

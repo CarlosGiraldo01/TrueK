@@ -108,11 +108,17 @@ test("PATCH /users/:id responds 400 for a non-UUID id", async () => {
   assert.equal(usersRepository.update.mock.callCount(), 0);
 });
 
-test("PATCH /users/:id rejects role changes", async () => {
+test("PATCH /users/:id saves the role chosen in Completar perfil", async () => {
   const res = await patch(ID, { user_id: ID, role: "provider" });
 
+  assert.equal(res.status, 200);
+  assert.deepEqual(usersRepository.update.mock.calls.at(-1)?.arguments, [ID, { role: "provider" }]);
+});
+
+test("PATCH /users/:id rejects an invalid role", async () => {
+  const res = await patch(ID, { user_id: ID, role: "admin" });
+
   assert.equal(res.status, 400);
-  assert.equal((await res.json()).message, "Campo no editable: role");
   assert.equal(usersRepository.update.mock.callCount(), 0);
 });
 
