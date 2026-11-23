@@ -23,4 +23,5 @@ export interface UpdateUserInput {
   location?: string;
   latitude?: number | null;
   longitude?: number | null;
+  role?: UserRole; // se elige en "Completar perfil"
 }

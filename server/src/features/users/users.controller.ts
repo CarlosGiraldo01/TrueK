@@ -20,6 +20,7 @@ const EDITABLE_KEYS = new Set([
   "location",
   "latitude",
   "longitude",
+  "role",
 ]);
 
 const trimmedBetween = (value: unknown, max: number): string | undefined => {
@@ -113,6 +114,14 @@ export const parseUpdateUserBody = (body: unknown): UpdateUserInput => {
       patch.latitude = latitude;
       patch.longitude = longitude;
     }
+  }
+
+  // Tipo de perfil que el usuario elige en "Completar perfil"
+  if (data.role !== undefined) {
+    if (data.role !== "client" && data.role !== "provider") {
+      throw Boom.badRequest('El campo role debe ser "client" o "provider"');
+    }
+    patch.role = data.role;
   }
 
   if (Object.keys(patch).length === 0) {

@@ -89,4 +89,16 @@ export const requestsRepository = {
     );
     return rows[0];
   },
+
+  // Marca el servicio como pagado. Solo cambia si está terminado y aún no se había pagado:
+  // así un doble clic no lo paga dos veces (en ese caso devuelve undefined).
+  confirmPayment: async (id: string): Promise<ServiceRequest | undefined> => {
+    const { rows } = await pool.query(
+      `update service_requests set payment_confirmed = true
+       where id = $1 and status = 'finished' and payment_confirmed = false
+       returning ${SELECT_COLUMNS}`,
+      [id]
+    );
+    return rows[0];
+  },
 };

@@ -95,11 +95,19 @@ test("coordinates: out of range or non finite are rejected", () => {
   rejects({ latitude: "1", longitude: 0 }, msg);
 });
 
-test("rejects non editable fields, including role", () => {
-  for (const key of ["role", "email", "password", "id", "created_at", "whatever"]) {
+test("rejects non editable fields", () => {
+  for (const key of ["email", "password", "id", "created_at", "whatever"]) {
     rejects({ name: "Ana", [key]: "x" }, `Campo no editable: ${key}`);
   }
-  rejects({ role: "provider" }, "Campo no editable: role");
+});
+
+test("accepts role client or provider (chosen in Completar perfil)", () => {
+  assert.deepEqual(parseUpdateUserBody({ role: "provider" }), { role: "provider" });
+  assert.deepEqual(parseUpdateUserBody({ role: "client" }), { role: "client" });
+});
+
+test("rejects any other role", () => {
+  rejects({ role: "admin" }, 'El campo role debe ser "client" o "provider"');
 });
 
 test("user_id alone means nothing to update and is never part of the patch", () => {

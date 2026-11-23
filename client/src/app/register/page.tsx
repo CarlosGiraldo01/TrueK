@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { useSession } from "@/context/SessionContext";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { register, updateUser } = useSession();
 
   const [formData, setFormData] = useState({
     nombreCompleto: "",
@@ -13,6 +15,8 @@ export default function RegisterPage() {
     password: "",
     edad: "",
   });
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,10 +32,43 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Datos de registro:", formData);
-    router.push("/complete-profile");
+    setErrorMessage("");
+
+    if (formData.nombreCompleto.trim().length < 2) {
+      setErrorMessage("Ingresa tu nombre completo");
+      return;
+    }
+
+    if (!formData.email.trim() || !formData.email.includes("@")) {
+      setErrorMessage("Ingresa un correo electrónico válido");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setErrorMessage("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    const parsedAge = Number(formData.edad);
+    if (!formData.edad || Number.isNaN(parsedAge) || parsedAge < 1 || parsedAge > 120) {
+      setErrorMessage("Ingresa una edad válida");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await register(formData.nombreCompleto, formData.email, formData.password, "client");
+      await updateUser({ age: parsedAge });
+      router.push("/complete-profile");
+    } catch (error: unknown) {
+      const serverMsg = (error as { response?: { data?: { message?: string } } })
+        ?.response?.data?.message;
+      setErrorMessage(serverMsg ?? "No se pudo crear la cuenta. Intenta de nuevo.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -117,7 +154,7 @@ export default function RegisterPage() {
 
           <div className="h-[1px] w-full bg-[#2E2E2E]" />
 
-          <form onSubmit={handleSubmit} className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-4">
+          <form onSubmit={handleSubmit} className="px-5 py-5 sm:px-6 sm:py-6 flex flex-col gap-4" noValidate>
             
             {/* Nombre */}
             <div className="flex flex-col">
@@ -151,7 +188,7 @@ export default function RegisterPage() {
               <input
                 id="email"
                 name="email"
-                type="text"
+                type="email"
                 inputMode="email"
                 autoComplete="email"
                 autoCapitalize="none"
@@ -178,10 +215,10 @@ export default function RegisterPage() {
                 type="password"
                 autoComplete="new-password"
                 required
-                minLength={8}
+                minLength={6}
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Mínimo 8 caracteres"
+                placeholder="Mínimo 6 caracteres"
                 className="h-[46px] w-full rounded-[12px] bg-[#363636] px-4 text-sm text-white placeholder:text-[#8A8A8A] outline-none transition-all focus:ring-1.5 focus:ring-[#D3FC31]/60"
               />
             </div>
@@ -233,12 +270,20 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Mensaje de error */}
+            {errorMessage && (
+              <p className="rounded-[10px] border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
+                {errorMessage}
+              </p>
+            )}
+
             {/* Botón de envío */}
             <button
               type="submit"
-              className="mt-3 flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#D3FC31] text-base font-bold text-black transition-all duration-150 hover:bg-[#cbf127] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D3FC31]"
+              disabled={isLoading}
+              className="mt-3 flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#D3FC31] text-base font-bold text-black transition-all duration-150 hover:bg-[#cbf127] active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D3FC31]"
             >
-              Continuar
+              {isLoading ? "Creando cuenta..." : "Continuar"}
             </button>
 
             {/* Enlace al login */}

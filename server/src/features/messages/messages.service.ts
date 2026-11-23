@@ -1,6 +1,7 @@
 import Boom from "@hapi/boom";
 import { requestsService } from "../requests/requests.service";
 import { messagesRepository } from "./messages.repository";
+import { broadcastToRequest, MESSAGE_EVENT } from "../../config/realtime";
 import type { CreateMessageInput, Message } from "./messages.types";
 
 const create = async (input: CreateMessageInput): Promise<Message> => {
@@ -18,11 +19,16 @@ const create = async (input: CreateMessageInput): Promise<Message> => {
     throw Boom.conflict("No puedes enviar mensajes en una solicitud cancelada o rechazada");
   }
 
-  return messagesRepository.create({
+  const created = await messagesRepository.create({
     service_request_id: request.id,
     sender_id: input.sender_id,
     content: input.content,
   });
+
+  // Socket: el mensaje le llega en vivo a la otra persona que tiene abierto el chat
+  await broadcastToRequest(request.id, MESSAGE_EVENT, created);
+
+  return created;
 };
 
 export const messagesService = {

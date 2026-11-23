@@ -29,6 +29,13 @@ export interface Quote {
   total: number;
 }
 
+// Lo que llega por el socket (evento "new-notification") cuando hay un aviso nuevo
+export interface RequestNotificationEvent {
+  type: NotificationType;
+  message: string;
+  request: ServiceRequest;
+}
+
 // Respuesta de GET /requests/transition
 export interface Transition {
   status: ServiceStatus;

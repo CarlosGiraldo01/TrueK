@@ -10,6 +10,7 @@ const UPDATABLE_COLUMNS: ReadonlyArray<readonly [keyof UpdateUserInput, string]>
   ["location", "location"],
   ["latitude", "latitude"],
   ["longitude", "longitude"],
+  ["role", "role"],
 ];
 
 const SELECT_COLUMNS = `id, name, email, profile_picture, age, location, description, role, latitude, longitude`;
@@ -22,6 +23,32 @@ export const usersRepository = {
 
   findById: async (id: string): Promise<User | undefined> => {
     const { rows } = await pool.query(`select ${SELECT_COLUMNS} from users where id = $1`, [id]);
+    return rows[0];
+  },
+
+  findByEmailWithPassword: async (
+    email: string,
+  ): Promise<(User & { password?: string | null }) | undefined> => {
+    const { rows } = await pool.query(
+      `select ${SELECT_COLUMNS}, password from users where lower(email) = lower($1) limit 1`,
+      [email.trim()],
+    );
+    return rows[0];
+  },
+
+  createUser: async (data: {
+    id: string;
+    name: string;
+    email: string;
+    password: string;
+    role: string;
+  }): Promise<User & { password?: string | null }> => {
+    const { rows } = await pool.query(
+      `insert into users (id, name, email, password, role)
+       values ($1, $2, $3, $4, $5)
+       returning ${SELECT_COLUMNS}`,
+      [data.id, data.name.trim(), data.email.trim().toLowerCase(), data.password, data.role],
+    );
     return rows[0];
   },
 

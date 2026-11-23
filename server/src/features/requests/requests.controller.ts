@@ -171,6 +171,19 @@ export const updateRequestStatus = async (req: Request, res: Response) => {
   res.json(await requestsService.transition(actorId, id, action));
 };
 
+// PATCH /requests/:id/pay  { user_id }
+export const payRequest = async (req: Request, res: Response) => {
+  const clientId = getUserId(req);
+  if (!isUuid(clientId)) {
+    throw Boom.badRequest("user_id inválido");
+  }
+  const id = String(req.params.id);
+  if (!isUuid(id)) {
+    throw Boom.badRequest("id de solicitud inválido");
+  }
+  res.json(await requestsService.pay(clientId, id));
+};
+
 export const createRequest = async (req: Request, res: Response) => {
   const clientId = getUserId(req);
   if (!isUuid(clientId)) {

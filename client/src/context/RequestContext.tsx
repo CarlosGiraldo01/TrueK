@@ -2,11 +2,12 @@
 //reune todas las llamadas
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { NOTIFICATION_EVENT, supabase } from "@/lib/supabase";
 import { useSession } from "./SessionContext";
 import { useNotifications } from "./NotificationsContext";
 import { usePosts } from "./PostsContext";
 import { useUsers } from "./UsersContext";
-import type {Notification,NotificationType,Quote,Rating,RequestAction,ServiceRequest,} from "@/types";
+import type {Notification,NotificationType,Quote,Rating,RequestAction,RequestNotificationEvent,ServiceRequest,} from "@/types";
 //centraliza y administra la información y las funciones de las solicitudes de servicios de Truek
 // Espera antes de mostrar un aviso al entrar con un usuario (1000 = 1 segundo).
 const NOTICE_DELAY = 1500;
@@ -71,7 +72,7 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [lastCreatedId, setLastCreatedId] = useState<string | null>(null);
   const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
-  const notifiedIncoming = useRef(new Set<string>()); // Avisos del servidor que ya se mostraron.
+  const shownNotices = useRef(new Set<string>()); // Avisos ya mostrados ("solicitud-tipo"), para no repetirlos.
   const requestsRef = useRef<ServiceRequest[]>([]); // Copia para los temporizadores.
 
   // Al abrir la app pide las solicitudes, las calificaciones y los promedios.
@@ -324,8 +325,9 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       .then((res: { data: Notification[] }) => {
         if (cancelled) return;
         res.data.forEach((notification) => {
-          if (notifiedIncoming.current.has(notification.id)) return;
-          notifiedIncoming.current.add(notification.id);
+          const key = `${notification.service_request_id}-${notification.type}`;
+          if (shownNotices.current.has(key)) return;
+          shownNotices.current.add(key);
 
           schedule(() => {
             const request = requestsRef.current.find((r) => r.id === notification.service_request_id);
@@ -342,6 +344,35 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
       cancelled = true;
     };
   }, [userId, schedule, showNotice]);
+
+  // Socket (Supabase Realtime): escucha el canal del usuario. Cuando el servidor crea un aviso
+  // (solicitud nueva, aceptada, rechazada o terminada) manda el evento con la solicitud actualizada.
+  useEffect(() => {
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`user:${userId}`)
+      .on("broadcast", { event: NOTIFICATION_EVENT }, ({ payload }) => {
+        const event = payload as RequestNotificationEvent;
+        const updated = event.request;
+
+        // Guarda la solicitud tal como quedó en el servidor (nueva o con su estado nuevo).
+        setRequests((prev) => [updated, ...prev.filter((r) => r.id !== updated.id)]);
+        requestsRef.current = [updated, ...requestsRef.current.filter((r) => r.id !== updated.id)];
+        markInSession(updated.id);
+
+        const key = `${updated.id}-${event.type}`;
+        if (shownNotices.current.has(key)) return;
+        shownNotices.current.add(key);
+        showNotice(updated, event.type);
+      })
+      .subscribe();
+
+    // Al salir o cambiar de usuario se cierra el canal, para no escuchar dos veces.
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId, markInSession, showNotice]);
 
   const value: RequestsContextValue = {requests,loading,error,getRequest,currentRequest,getRole,draft,saveDraft,quote,quoteLoading,quoteError,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,closeRequest,getRating,getUserRating,addRating,};
 

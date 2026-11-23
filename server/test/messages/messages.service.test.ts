@@ -25,8 +25,15 @@ const messagesRepository = {
   ),
 };
 
+// El socket se simula: los tests no se conectan a Supabase
+const realtime = {
+  MESSAGE_EVENT: "new-message",
+  broadcastToRequest: mock.fn(async (_requestId: string, _event: string, _payload: object): Promise<void> => undefined),
+};
+
 mock.module("../../src/features/requests/requests.service", { exports: { requestsService } });
 mock.module("../../src/features/messages/messages.repository", { exports: { messagesRepository } });
+mock.module("../../src/config/realtime", { exports: realtime });
 
 let messagesService: typeof import("../../src/features/messages/messages.service").messagesService;
 
@@ -59,7 +66,20 @@ const assertBoom = (status: number, message: string) => (e: unknown) => {
 beforeEach(() => {
   requestsService.getById.mock.resetCalls();
   messagesRepository.create.mock.resetCalls();
+  realtime.broadcastToRequest.mock.resetCalls();
   requestsService.getById.mock.mockImplementation(async () => makeRequest());
+});
+
+test("messagesService.create sends the new message by socket to the request channel", async () => {
+  const created = await messagesService.create(input(CLIENT));
+
+  assert.equal(realtime.broadcastToRequest.mock.callCount(), 1);
+  assert.deepEqual(realtime.broadcastToRequest.mock.calls[0].arguments, [REQ, "new-message", created]);
+});
+
+test("messagesService.create does not send the socket event when the sender is an outsider", async () => {
+  await assert.rejects(messagesService.create(input(OUTSIDER)));
+  assert.equal(realtime.broadcastToRequest.mock.callCount(), 0);
 });
 
 test("messagesService.create stores the message with the client as sender", async () => {

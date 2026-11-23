@@ -9,6 +9,12 @@ vi.mock("@/lib/api", () => ({
   api: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
 }));
 
+// El socket de Supabase se simula: ningún test se conecta de verdad.
+vi.mock("@/lib/supabase", () => {
+  const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+  return { NOTIFICATION_EVENT: "new-notification", supabase: { channel: vi.fn(() => channel), removeChannel: vi.fn() } };
+});
+
 interface FakeUser {
   id: string;
   name: string;

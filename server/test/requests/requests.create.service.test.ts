@@ -32,9 +32,16 @@ const uploadsRepository = {
   getPublicUrl: mock.fn((path: string): string => `${IMG_BASE}${path}`),
 };
 
+// El socket se simula: los tests no se conectan a Supabase
+const realtime = {
+  NOTIFICATION_EVENT: "new-notification",
+  broadcastToUser: mock.fn(async (_userId: string, _event: string, _payload: object): Promise<void> => undefined),
+};
+
 mock.module("../../src/features/posts/posts.repository", { exports: { postsRepository } });
 mock.module("../../src/features/requests/requests.repository", { exports: { requestsRepository } });
 mock.module("../../src/features/uploads/uploads.repository", { exports: { uploadsRepository } });
+mock.module("../../src/config/realtime", { exports: realtime });
 
 let requestsService: typeof import("../../src/features/requests/requests.service").requestsService;
 
@@ -46,6 +53,7 @@ beforeEach(() => {
   postsRepository.findById.mock.resetCalls();
   postsRepository.findById.mock.mockImplementation(async () => makePost());
   requestsRepository.create.mock.resetCalls();
+  realtime.broadcastToUser.mock.resetCalls();
 });
 
 const input = { post_id: POST, meeting_address: "Calle 1", meeting_date: "2999-01-01T00:00:00.000Z", hours: 3 };
@@ -74,6 +82,24 @@ test("create calls the repository once with server-computed data and returns pro
   });
   assert.equal(result.provider_id, PROVIDER);
   assert.equal(result.id, "new");
+});
+
+test("create sends the live notification to the provider by socket", async () => {
+  const result = await requestsService.create(CLIENT, input);
+
+  assert.equal(realtime.broadcastToUser.mock.callCount(), 1);
+  assert.deepEqual(realtime.broadcastToUser.mock.calls[0].arguments, [
+    PROVIDER,
+    "new-notification",
+    { type: "incoming_services", message: "Solicita tus servicios de:", request: result },
+  ]);
+});
+
+test("create does not send the socket event when the post does not exist", async () => {
+  postsRepository.findById.mock.mockImplementation(async () => undefined);
+
+  await assert.rejects(requestsService.create(CLIENT, input));
+  assert.equal(realtime.broadcastToUser.mock.callCount(), 0);
 });
 
 test("create falls back to 10000 per hour when the post has no price", async () => {
