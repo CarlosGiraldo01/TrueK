@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { MESSAGE_MAX_LENGTH, useChat } from "@/context/ChatContext";
+import { useToast } from "@/context/ToastContext";
+import { getErrorMessage } from "@/lib/errors";
 
 export function MessageInput() {
   const { createMessage } = useChat();
+  const { showToast } = useToast();
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -27,12 +29,9 @@ export function MessageInput() {
       await createMessage(content);
       setText("");
     } catch (err) {
-      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
-      setErrorMessage(
-        typeof serverMessage === "string" && serverMessage
-          ? serverMessage
-          : "No se pudo enviar el mensaje. Intenta de nuevo."
-      );
+      const message = getErrorMessage(err, "No se pudo enviar el mensaje. Intenta de nuevo.");
+      setErrorMessage(message);
+      showToast(message, "error");
     } finally {
       setIsSending(false);
     }

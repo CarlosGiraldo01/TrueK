@@ -2,7 +2,7 @@
 //reune todas las llamadas
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
-import { NOTIFICATION_EVENT, supabase } from "@/lib/supabase";
+import { NOTIFICATION_EVENT, PAYMENT_EVENT, supabase } from "@/lib/supabase";
 import { useSession } from "./SessionContext";
 import { useNotifications } from "./NotificationsContext";
 import { usePosts } from "./PostsContext";
@@ -43,6 +43,7 @@ interface RequestsContextValue {
   acceptRequest: (id: string) => Promise<void>;
   rejectRequest: (id: string) => Promise<void>;
   finishRequest: (id: string) => Promise<void>;
+  payRequest: (id: string) => Promise<void>;
   closeRequest: (id: string) => void;
   getRating: (requestId: string) => Rating | undefined;
   getUserRating: (userId: string) => number;
@@ -268,6 +269,20 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
   const rejectRequest = useCallback((id: string) => changeStatus(id, "reject"), [changeStatus]);
   const finishRequest = useCallback((id: string) => changeStatus(id, "finish"), [changeStatus]);
 
+  // El cliente paga: el servidor revisa que se pueda, lo guarda y avisa al prestador.
+  // Los errores se propagan para que la pantalla de pago los muestre.
+  const payRequest = useCallback(
+    async (id: string): Promise<void> => {
+      if (!userId) throw new Error("Debes iniciar sesión para pagar");
+
+      const res = await api.patch<ServiceRequest>(`/requests/${id}/pay`, { user_id: userId });
+      const paid = res.data;
+      setRequests((prev) => prev.map((r) => (r.id === paid.id ? paid : r)));
+      requestsRef.current = requestsRef.current.map((r) => (r.id === paid.id ? paid : r));
+    },
+    [userId],
+  );
+
   const getRating = useCallback(
     (requestId: string) => ratings.find((r) => r.service_request_id === requestId),
     [ratings],
@@ -366,6 +381,12 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
         shownNotices.current.add(key);
         showNotice(updated, event.type);
       })
+      // El cliente pagó: al prestador se le actualiza la solicitud y ve "Pagado"
+      .on("broadcast", { event: PAYMENT_EVENT }, ({ payload }) => {
+        const paid = payload as ServiceRequest;
+        setRequests((prev) => prev.map((r) => (r.id === paid.id ? paid : r)));
+        requestsRef.current = requestsRef.current.map((r) => (r.id === paid.id ? paid : r));
+      })
       .subscribe();
 
     // Al salir o cambiar de usuario se cierra el canal, para no escuchar dos veces.
@@ -374,7 +395,7 @@ export const RequestsProvider = ({ children }: { children: React.ReactNode }) =>
     };
   }, [userId, markInSession, showNotice]);
 
-  const value: RequestsContextValue = {requests,loading,error,getRequest,currentRequest,getRole,draft,saveDraft,quote,quoteLoading,quoteError,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,closeRequest,getRating,getUserRating,addRating,};
+  const value: RequestsContextValue = {requests,loading,error,getRequest,currentRequest,getRole,draft,saveDraft,quote,quoteLoading,quoteError,createRequest,lastCreatedId,acceptRequest,rejectRequest,finishRequest,payRequest,closeRequest,getRating,getUserRating,addRating,};
 
   return <RequestsContext.Provider value={value}>{children}</RequestsContext.Provider>;};
 

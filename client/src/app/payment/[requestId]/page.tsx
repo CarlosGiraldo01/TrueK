@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, PencilIcon } from "@heroicons/react/24/solid";
 import { NavBar, TopHeader } from "@/components/ui";
 import { useRequests } from "@/context/RequestContext";
+import { useToast } from "@/context/ToastContext";
+import { getErrorMessage } from "@/lib/errors";
 import { formatPrice } from "../formatPrice";
 import { PaymentNotFound } from "../PaymentNotFound";
 import { SwipeToPay } from "./SwipeToPay";
@@ -14,13 +16,28 @@ const PaymentScreen = ({ requestId } : { requestId: string }) => {
   const router = useRouter();
   // The logged user comes from the session (not a fixed id)
   const currentUserId = useSession().user?.id;
-  const { getRequest } = useRequests();
+  const { getRequest, payRequest } = useRequests();
+  const { showToast } = useToast();
+  const [swipeKey, setSwipeKey] = useState(0); // al cambiarlo, el botón de deslizar vuelve al inicio
   const request = getRequest(requestId);
   const [price, setPrice] = useState(request?.price ?? 0);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
 
   if (!request || request.client_id !== currentUserId) return <PaymentNotFound />;
+
+  // Al terminar de deslizar se le pide al servidor que registre el pago.
+  // Solo si el servidor lo guarda se muestra "Pago exitoso".
+  const handlePay = async () => {
+    try {
+      await payRequest(requestId);
+      showToast("Pago realizado", "success");
+      router.replace(`/payment/${requestId}/success`);
+    } catch (err) {
+      showToast(getErrorMessage(err, "No se pudo realizar el pago. Intenta de nuevo."), "error");
+      setSwipeKey((key) => key + 1);
+    }
+  };
 
   const startEditing = () => {
     setDraft(String(price));
@@ -89,7 +106,7 @@ const PaymentScreen = ({ requestId } : { requestId: string }) => {
         </div>
 
         <div className="mt-20 px-3">
-          <SwipeToPay onComplete={() => router.replace(`/payment/${requestId}/success`)}/>
+          <SwipeToPay key={swipeKey} onComplete={handlePay}/>
         </div>
       </div>
 

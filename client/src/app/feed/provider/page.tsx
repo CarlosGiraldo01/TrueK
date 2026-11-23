@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FeedView } from "@/components/feed/FeedView";
 import { useSession } from "@/context/SessionContext";
 
-// Vista del feed para el prestador (aquí sí forzamos el rol para que salga todo lo de proveedor)
+// Feed del prestador: si un cliente entra aquí, lo mandamos a su propio feed
 export default function ProviderFeedPage() {
-  const { setActiveRole, activeRole } = useSession();
+  const router = useRouter();
+  const { activeRole } = useSession();
 
   useEffect(() => {
     if (activeRole !== "provider") {
-      setActiveRole("provider");
+      router.replace("/feed/client");
     }
-  }, [activeRole, setActiveRole]);
+  }, [activeRole, router]);
 
-  return <FeedView forcedRole="provider" />;
+  if (activeRole !== "provider") return null;
+
+  return <FeedView />;
 }

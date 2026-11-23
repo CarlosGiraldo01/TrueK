@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { MESSAGE_EVENT, supabase } from "@/lib/supabase";
 import { useSession } from "./SessionContext";
 import type { Message } from "@/types";
 
@@ -35,7 +36,9 @@ export const ChatProvider = ({
     api
       .get<Message[]>("/messages", { params: { service_request_id: requestId } })
       .then((res) => {
-        if (!cancelled) setMessages(res.data);
+        if (cancelled) return;
+        // Se juntan con los que ya llegaron por el socket mientras cargaba, sin repetir.
+        setMessages((prev) => [...res.data, ...prev.filter((m) => !res.data.some((d) => d.id === m.id))]);
       })
       .catch(() => {
         if (!cancelled) setError("No se pudieron cargar los mensajes");
@@ -46,6 +49,24 @@ export const ChatProvider = ({
 
     return () => {
       cancelled = true;
+    };
+  }, [requestId]);
+
+  // Socket (Supabase Realtime): escucha el canal de esta solicitud. Cuando la otra persona
+  // envía un mensaje, el servidor lo manda por aquí y aparece sin recargar la página.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`request:${requestId}`)
+      .on("broadcast", { event: MESSAGE_EVENT }, ({ payload }) => {
+        const message = payload as Message;
+        // Si ya lo tenemos (por ejemplo, el que yo mismo envié) no se repite.
+        setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+      })
+      .subscribe();
+
+    // Al salir del chat se cierra el canal.
+    return () => {
+      supabase.removeChannel(channel);
     };
   }, [requestId]);
 

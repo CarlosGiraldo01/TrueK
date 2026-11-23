@@ -9,6 +9,12 @@ vi.mock("@/lib/api", () => ({
   api: { get: vi.fn(), post: vi.fn() },
 }));
 
+// El socket de Supabase se simula: ningún test se conecta de verdad.
+vi.mock("@/lib/supabase", () => {
+  const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
+  return { MESSAGE_EVENT: "new-message", supabase: { channel: vi.fn(() => channel), removeChannel: vi.fn() } };
+});
+
 const sessionState = vi.hoisted(() => ({ user: { id: "user-1" } as { id: string } | null }));
 
 vi.mock("@/context/SessionContext", () => ({ useSession: () => ({ user: sessionState.user }) }));

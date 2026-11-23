@@ -9,6 +9,7 @@ import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { useUsers } from "@/context/UsersContext";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/context/ToastContext";
 import { RequestCard } from "./RequestCard";
 
 // Pestaña de servicios muestra el servicio actual que está en curso
@@ -16,6 +17,7 @@ export default function RequestsPage() {
   const { user } = useSession();
   const router = useRouter();
   const { currentRequest, getRole, finishRequest } = useRequests();
+  const { showToast } = useToast();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
 
@@ -35,9 +37,12 @@ export default function RequestsPage() {
     setActionError(null);
     try {
       await finishRequest(currentRequest.id);
+      showToast("Servicio finalizado", "success");
       router.push(`/requests/${currentRequest.id}/rating`);
     } catch (err) {
-      setActionError(getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo."));
+      const message = getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo.");
+      setActionError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }

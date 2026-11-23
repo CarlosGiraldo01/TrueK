@@ -6,6 +6,9 @@ import { ProviderRequestView } from "@/app/requests/[requestId]/ProviderRequestV
 import { ActiveServiceView } from "@/app/requests/[requestId]/ActiveServiceView";
 import type { ServiceRequest } from "@/types";
 
+// Los toasts se simulan: solo se revisa que la pantalla los pida.
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
 const push = vi.hoisted(() => vi.fn());
 const acceptRequest = vi.hoisted(() => vi.fn());
 const rejectRequest = vi.hoisted(() => vi.fn());

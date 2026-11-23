@@ -3,7 +3,8 @@
 
 import { DEFAULT_POST_IMAGE } from "@/lib/postImage";
 import { use, useState } from "react";
-import axios from "axios";
+import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/context/ToastContext";
 import { notFound, useRouter } from "next/navigation";
 import { Button, NavBar, StatusMessage, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
@@ -28,6 +29,7 @@ function Row({ label, value }: { label: string; value: string }) {
 const ConfirmScreen = ({ postId }: { postId: string }) => {
   const router = useRouter();
   const { draft, createRequest, quote, quoteLoading, quoteError } = useRequests();
+  const { showToast } = useToast();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const post = getPostById(postId);
@@ -78,14 +80,12 @@ const ConfirmScreen = ({ postId }: { postId: string }) => {
     setSubmitError(null);
     try {
       await createRequest();
+      showToast("Solicitud enviada", "success");
       router.replace(`/schedule/${postId}/success`);
     } catch (err) {
-      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
-      setSubmitError(
-        typeof serverMessage === "string" && serverMessage
-          ? serverMessage
-          : "No se pudo crear la solicitud. Intenta de nuevo.",
-      );
+      const message = getErrorMessage(err, "No se pudo crear la solicitud. Intenta de nuevo.");
+      setSubmitError(message);
+      showToast(message, "error");
       setIsSubmitting(false);
     }
   };

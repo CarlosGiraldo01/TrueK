@@ -12,7 +12,7 @@ vi.mock("@/lib/api", () => ({
 // El socket de Supabase se simula: ningún test se conecta de verdad.
 vi.mock("@/lib/supabase", () => {
   const channel = { on: vi.fn(() => channel), subscribe: vi.fn(() => channel) };
-  return { NOTIFICATION_EVENT: "new-notification", supabase: { channel: vi.fn(() => channel), removeChannel: vi.fn() } };
+  return { NOTIFICATION_EVENT: "new-notification", PAYMENT_EVENT: "payment-confirmed", supabase: { channel: vi.fn(() => channel), removeChannel: vi.fn() } };
 });
 
 const sessionState = vi.hoisted(() => ({ user: { id: "client-1" } as { id: string } | null }));

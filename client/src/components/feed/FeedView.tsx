@@ -5,31 +5,22 @@ import { useRouter } from "next/navigation";
 import { FeedHeader } from "@/components/ui/FeedHeader";
 import { PostCard } from "@/components/ui/PostCard";
 import { NavBar } from "@/components/ui/NavBar";
-import type { UserRole } from "@/types";
 import { useSession } from "@/context/SessionContext";
 import { usePosts } from "@/context/PostsContext";
 import { useRequests } from "@/context/RequestContext";
 
-interface FeedViewProps {
-  // Rol forzado opcional para páginas fijas de proveedor o cliente
-  forcedRole?: UserRole;
-}
-
 // Vista principal del feed: muestra las publicaciones y maneja los roles
-export function FeedView({ forcedRole }: FeedViewProps) {
+export function FeedView() {
   const router = useRouter();
-  const { activeRole, setActiveRole } = useSession();
+  const { activeRole } = useSession();
   const { posts } = usePosts();
   const { getUserRating } = useRequests();
 
-  const currentRole: UserRole = forcedRole ?? activeRole;
+  // El rol es el de la cuenta: un cliente nunca ve el botón de crear publicación
+  const currentRole = activeRole;
   const isProvider = currentRole === "provider";
 
-  // Al crear post, aseguramos que esté en modo proveedor y mandamos al form
   const handleCreatePost = () => {
-    if (activeRole !== "provider") {
-      setActiveRole("provider");
-    }
     router.push("/feed/create");
   };
 
@@ -69,33 +60,6 @@ export function FeedView({ forcedRole }: FeedViewProps) {
         </div>
       </main>
 
-      {/* Botón flotante para cambiar de rol rápido (muy útil para testear) */}
-      <div className="fixed bottom-20 right-4 z-40">
-        <button
-          type="button"
-          onClick={() => {
-            const nextRole = isProvider ? "client" : "provider";
-            setActiveRole(nextRole);
-            router.push(nextRole === "provider" ? "/feed/provider" : "/feed/client");
-          }}
-          className="flex items-center gap-2 rounded-full border border-[#3A3A39] bg-[#1F1F1E]/95 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xl backdrop-blur-md transition-all hover:border-[#D3FC31] hover:scale-105 active:scale-95 cursor-pointer"
-          title="Alternar entre rol Proveedor y Cliente para pruebas"
-          aria-label="Alternar rol activo"
-        >
-          <span
-            className={
-              "size-2 rounded-full " +
-              (isProvider ? "bg-[#D3FC31] animate-pulse" : "bg-[#38BDF8]")
-            }
-          />
-          <span>
-            Rol: <strong className="text-white">{isProvider ? "Proveedor" : "Cliente"}</strong>
-          </span>
-          <span className="text-[10px] text-[#8A8A8A] underline">
-            {isProvider ? "Ver como Cliente" : "Ver como Proveedor"}
-          </span>
-        </button>
-      </div>
 
       {/* Menú inferior */}
       <NavBar activeId="inicio" />
