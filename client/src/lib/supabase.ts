@@ -7,5 +7,7 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "",
 );
 
-// Mismo nombre de evento que usa el servidor (server/src/config/realtime.ts)
+// Mismos nombres de evento que usa el servidor (server/src/config/realtime.ts)
 export const NOTIFICATION_EVENT = "new-notification";
+export const MESSAGE_EVENT = "new-message";
+export const PAYMENT_EVENT = "payment-confirmed";

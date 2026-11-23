@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { FeedView } from "@/components/feed/FeedView";
 import { useSession } from "@/context/SessionContext";
 
-// Forzamos el rol a cliente por si entra directo acá
+// Feed del cliente: si un prestador entra aquí, lo mandamos a su propio feed
 export default function ClientFeedPage() {
-  const { setActiveRole, activeRole } = useSession();
+  const router = useRouter();
+  const { activeRole } = useSession();
 
   useEffect(() => {
     if (activeRole !== "client") {
-      setActiveRole("client");
+      router.replace("/feed/provider");
     }
-  }, [activeRole, setActiveRole]);
+  }, [activeRole, router]);
 
-  return <FeedView forcedRole="client" />;
+  if (activeRole !== "client") return null;
+
+  return <FeedView />;
 }

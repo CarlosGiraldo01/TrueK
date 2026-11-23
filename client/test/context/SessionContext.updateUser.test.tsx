@@ -36,7 +36,9 @@ describe("SessionContext.updateUser", () => {
   });
 
   it("delegates to UsersContext with the session user id", async () => {
-    localStorage.setItem("truek_session_user_id", "session-user");
+    // Sesión guardada como la deja el login real (token + usuario)
+    localStorage.setItem("truek_token", "token-de-prueba");
+    localStorage.setItem("truek_user", JSON.stringify({ id: "session-user", name: "Vieja" }));
     const updated = { id: "session-user", name: "Nueva" } as User;
     usersMock.updateUser.mockResolvedValue(updated);
     const { result } = renderHook(() => useSession(), { wrapper });
@@ -48,6 +50,21 @@ describe("SessionContext.updateUser", () => {
 
     expect(usersMock.updateUser).toHaveBeenCalledWith("session-user", { name: "Nueva" });
     expect(returned).toEqual(updated);
+  });
+
+  it("right after registering it edits the new account, not the previous one", async () => {
+    localStorage.setItem("truek_token", "token-viejo");
+    localStorage.setItem("truek_user", JSON.stringify({ id: "cuenta-vieja", name: "David" }));
+    const { result } = renderHook(() => useSession(), { wrapper });
+    // El registro guarda la cuenta nueva en el navegador antes de que React actualice el estado
+    localStorage.setItem("truek_user", JSON.stringify({ id: "cuenta-nueva", name: "Sol" }));
+    usersMock.updateUser.mockResolvedValue({ id: "cuenta-nueva", name: "Sol" } as User);
+
+    await act(async () => {
+      await result.current.updateUser({ age: 19 });
+    });
+
+    expect(usersMock.updateUser).toHaveBeenCalledWith("cuenta-nueva", { age: 19 });
   });
 
   it("throws without calling the api when there is no session", async () => {

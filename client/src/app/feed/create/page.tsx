@@ -16,16 +16,16 @@ import { IMAGE_MIME_TYPES } from "@/lib/uploads";
 // Vista para armar y publicar un nuevo truek (rol proveedor)
 export default function CreatePostPage() {
   const router = useRouter();
-  const { user, activeRole, setActiveRole } = useSession();
+  const { user, activeRole } = useSession();
   const { addPost, tags } = usePosts();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Asegurarnos de que el usuario esté en modo provider
+  // Solo los prestadores publican servicios: un cliente vuelve a su feed
   useEffect(() => {
     if (activeRole !== "provider") {
-      setActiveRole("provider");
+      router.replace("/feed/client");
     }
-  }, [activeRole, setActiveRole]);
+  }, [activeRole, router]);
 
   // Datos principales del formulario
   const [formData, setFormData] = useState({

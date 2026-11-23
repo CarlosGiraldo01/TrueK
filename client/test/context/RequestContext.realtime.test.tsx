@@ -12,13 +12,13 @@ vi.mock("@/lib/api", () => ({
 // Socket simulado: guardamos la función que registra el contexto para poder "mandar" eventos.
 const socket = vi.hoisted(() => {
   const state = {
-    handler: null as null | ((message: { payload: unknown }) => void),
+    handlers: {} as Record<string, (message: { payload: unknown }) => void>,
     channelName: "",
     removed: 0,
   };
   const channel = {
-    on: (_type: string, _filter: { event: string }, callback: (message: { payload: unknown }) => void) => {
-      state.handler = callback;
+    on: (_type: string, filter: { event: string }, callback: (message: { payload: unknown }) => void) => {
+      state.handlers[filter.event] = callback;
       return channel;
     },
     subscribe: () => channel,
@@ -28,6 +28,7 @@ const socket = vi.hoisted(() => {
 
 vi.mock("@/lib/supabase", () => ({
   NOTIFICATION_EVENT: "new-notification",
+  PAYMENT_EVENT: "payment-confirmed",
   supabase: {
     channel: (name: string) => {
       socket.state.channelName = name;
@@ -69,14 +70,14 @@ const wrapper = ({ children }: { children: ReactNode }) => <RequestsProvider>{ch
 
 const sendEvent = (event: RequestNotificationEvent) => {
   act(() => {
-    socket.state.handler?.({ payload: event });
+    socket.state.handlers["new-notification"]?.({ payload: event });
   });
 };
 
 describe("RequestsContext realtime (Supabase socket)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    socket.state.handler = null;
+    socket.state.handlers = {};
     socket.state.removed = 0;
     sessionState.user = { id: "prov-1" };
     mockedApi.get.mockImplementation(async (url: string) => {
@@ -132,6 +133,25 @@ describe("RequestsContext realtime (Supabase socket)", () => {
     sendEvent(event);
 
     expect(showNotification).toHaveBeenCalledTimes(1);
+  });
+
+  it("marks the request as paid when the payment event arrives", async () => {
+    mockedApi.get.mockImplementation(async (url: string) => {
+      if (url === "/requests") return { data: [{ ...newRequest, status: "finished" }] };
+      if (url === "/ratings/averages") return { data: {} };
+      if (url.startsWith("/requests/current/")) return { data: null };
+      return { data: [] };
+    });
+    const hook = renderHook(() => useRequests(), { wrapper });
+    await waitFor(() => expect(hook.result.current.loading).toBe(false));
+
+    act(() => {
+      socket.state.handlers["payment-confirmed"]?.({
+        payload: { ...newRequest, status: "finished", payment_confirmed: true },
+      });
+    });
+
+    expect(hook.result.current.getRequest("req-9")?.payment_confirmed).toBe(true);
   });
 
   it("closes the channel when the provider is unmounted", async () => {

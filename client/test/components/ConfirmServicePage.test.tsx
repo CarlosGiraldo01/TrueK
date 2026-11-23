@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import ConfirmServicePage from "@/app/schedule/[postId]/confirm/page";
 import type { Post, Quote } from "@/types";
 
+// Los toasts se simulan: solo se revisa que la pantalla los pida.
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
 const replace = vi.hoisted(() => vi.fn());
 const createRequest = vi.hoisted(() => vi.fn());
 

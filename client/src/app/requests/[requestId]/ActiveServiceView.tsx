@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { useRequests, type RequestRole } from "../../../context/RequestContext";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/context/ToastContext";
 import type { ServiceRequest, User } from "@/types";
 import { ServiceDetailCard, StatusBadge } from "./ServiceDetailCard";
 interface Props {
@@ -20,6 +21,7 @@ export function ActiveServiceView({ request, person, role, imageUrl }: Props) {
   const router = useRouter();
   //el requerimiento final pregunta si ya se puede cambiar 
   const { finishRequest } = useRequests();
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const isClient = role === "client";//cliente si o no 
@@ -30,8 +32,11 @@ export function ActiveServiceView({ request, person, role, imageUrl }: Props) {
     setActionError(null);
     try {
       await finishRequest(request.id);
+      showToast("Servicio finalizado", "success");
     } catch (err) {
-      setActionError(getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo."));
+      const message = getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo.");
+      setActionError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }

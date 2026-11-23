@@ -4,31 +4,91 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { redirectUserByRole } from "@/app/page";
-import type { UserRole } from "@/types";
+import { useSession } from "@/context/SessionContext";
+import { useToast } from "@/context/ToastContext";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { useGeocode } from "@/hooks/useGeocode";
+import { getErrorMessage } from "@/lib/errors";
+import type { UpdateUserInput, UserRole } from "@/types";
 
 export default function CompleteProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { user, updateUser } = useSession();
+  const { showToast } = useToast();
+
   // Estados del form para guardar lo que ponga el usuario
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [ciudadZona, setCiudadZona] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tipoPerfil, setTipoPerfil] = useState<"client" | "provider">("client");
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  // Para mostrar la fotito antes de subirla de verdad
+  // Igual que en Editar perfil: la foto se sube de una vez y el perfil guarda la URL
+  const { imageUrl, previewUrl: avatarPreview, isUploading, error: imageError, selectFile } = useImageUpload(user?.id);
+  // Busca las coordenadas de la ubicación (para el mapa)
+  const geocode = useGeocode();
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
-    }
+    selectFile(e.target.files?.[0] ?? null);
+    e.target.value = "";
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Guarda en el servidor lo que llenó (foto, ubicación, descripción y tipo de perfil)
+  // para que después aparezca en su Perfil, y lo manda al feed de su rol.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí mandamos al usuario a la vista que le toca según si es cliente o prestador
-    redirectUserByRole(tipoPerfil as UserRole, router);
+    setErrorMessage("");
+
+    if (!user) {
+      setErrorMessage("Debes iniciar sesión para completar tu perfil.");
+      return;
+    }
+    if (isUploading) {
+      setErrorMessage("Espera a que termine de subir la imagen.");
+      return;
+    }
+
+    const location = ciudadZona.trim();
+    const description = descripcion.trim();
+
+    if (location.length < 1 || location.length > 100) {
+      setErrorMessage("La ubicación debe tener entre 1 y 100 caracteres.");
+      return;
+    }
+    if (description.length > 500) {
+      setErrorMessage("La descripción no puede superar los 500 caracteres.");
+      return;
+    }
+
+    setIsSaving(true);
+    const coords = await geocode.search(location);
+    if (!coords) {
+      setIsSaving(false);
+      return; // useGeocode ya dejó el mensaje de error
+    }
+
+    const patch: UpdateUserInput = {
+      location,
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      description: description === "" ? null : description,
+      role: tipoPerfil,
+    };
+    if (imageUrl) patch.profile_picture = imageUrl;
+
+    try {
+      await updateUser(patch);
+      showToast("Perfil completado", "success");
+      // Aquí mandamos al usuario a la vista que le toca según si es cliente o prestador
+      redirectUserByRole(tipoPerfil as UserRole, router);
+    } catch (err) {
+      const message = getErrorMessage(err, "No se pudo guardar tu perfil. Intenta de nuevo.");
+      setErrorMessage(message);
+      showToast(message, "error");
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -237,11 +297,18 @@ export default function CompleteProfilePage() {
               </div>
             </div>
 
+            {(errorMessage || imageError || geocode.error) && (
+              <p role="alert" className="text-center text-xs font-medium text-red-400">
+                {errorMessage || imageError || geocode.error}
+              </p>
+            )}
+
             <button
               type="submit"
+              disabled={isSaving || isUploading}
               className="mt-3 flex h-[48px] w-full cursor-pointer items-center justify-center rounded-[12px] bg-[#D3FC31] text-base font-bold text-black transition-all duration-150 hover:bg-[#cbf127] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#D3FC31]"
             >
-              Finalizar registro
+              {isSaving ? "Guardando..." : isUploading ? "Subiendo foto..." : "Finalizar registro"}
             </button>
           </form>
         </div>

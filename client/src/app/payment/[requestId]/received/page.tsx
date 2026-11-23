@@ -23,13 +23,25 @@ const PaymentReceivedScreen = ({ requestId }: { requestId: string }) => {
 
   const client = getUserById(request.client_id);
   const clientName = client?.name ?? "Usuario";
+  // Cambia solo cuando el cliente paga (llega por el socket)
+  const isPaid = request.payment_confirmed;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <TopHeader title="Servicios"/>
 
       <div className="flex flex-1 flex-col items-center px-4 pt-21">
-        <PaymentResult title="Concluido su servicio!" message="Has concluido tu servicio con éxito!"/>
+        {isPaid ? (
+          <PaymentResult title="Concluido su servicio!" message="Has concluido tu servicio con éxito!"/>
+        ) : (
+          <div className="flex flex-col items-center text-center">
+            <div className="size-32 animate-pulse rounded-full border-[2.5px] border-truek-line" />
+            <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-white">Esperando el pago</h1>
+            <p className="mt-6 max-w-65 text-base leading-snug text-white">
+              {clientName} aún no ha pagado. Esta pantalla se actualiza sola cuando pague.
+            </p>
+          </div>
+        )}
 
         <div className="mt-7 w-full overflow-hidden rounded-2xl border border-truek-lime pb-5">
           <div className="px-5 pt-5">
@@ -52,7 +64,7 @@ const PaymentReceivedScreen = ({ requestId }: { requestId: string }) => {
           </div>
 
           <div className="flex items-center justify-between bg-truek-lime/30 px-7 py-3 text-lg">
-            <span className="font-bold text-truek-lime">Pagado:</span>
+            <span className="font-bold text-truek-lime">{isPaid ? "Pagado:" : "Pendiente:"}</span>
             <span className="text-white">{formatPrice(request.price)}</span>
           </div>
         </div>

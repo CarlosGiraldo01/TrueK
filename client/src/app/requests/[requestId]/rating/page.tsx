@@ -2,7 +2,8 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
+import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/context/ToastContext";
 import { Button, Logo, NavBar, StarRating, StatusMessage, TextField, TopHeader } from "@/components/ui";
 import { useRequests } from "../../../../context/RequestContext";
 import { usePosts } from "@/context/PostsContext";
@@ -14,6 +15,7 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
 
   const router = useRouter();
   const { getRequest, getRole, addRating, closeRequest } = useRequests();
+  const { showToast } = useToast();
   const { getPostById } = usePosts();
   const { getUserById } = useUsers();
   const [stars, setStars] = useState(0);
@@ -43,15 +45,13 @@ const RatingScreen = ({ requestId }: { requestId: string }) => {
     try {
       await addRating(request.id, stars as Rating["rating"], trimmed);
     } catch (err) {
-      const serverMessage = axios.isAxiosError(err) ? err.response?.data?.message : undefined;
-      setErrorMessage(
-        typeof serverMessage === "string" && serverMessage
-          ? serverMessage
-          : "No se pudo enviar tu calificación. Intenta de nuevo."
-      );
+      const message = getErrorMessage(err, "No se pudo enviar tu calificación. Intenta de nuevo.");
+      setErrorMessage(message);
+      showToast(message, "error");
       setIsSubmitting(false);
       return;
     }
+    showToast("Calificación enviada", "success");
     // Solo tras guardar en el servidor se sigue el flujo existente.
     closeRequest(request.id);
     router.push(`/payment/${request.id}`);

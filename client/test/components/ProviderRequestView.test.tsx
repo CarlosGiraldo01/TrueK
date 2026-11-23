@@ -1,3 +1,5 @@
+
+//nuevos 
 import type { ReactNode } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -5,6 +7,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ProviderRequestView } from "@/app/requests/[requestId]/ProviderRequestView";
 import { ActiveServiceView } from "@/app/requests/[requestId]/ActiveServiceView";
 import type { ServiceRequest } from "@/types";
+
+// Los toasts se simulan: solo se revisa que la pantalla los pida.
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
 
 const push = vi.hoisted(() => vi.fn());
 const acceptRequest = vi.hoisted(() => vi.fn());

@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 import { useRequests } from "../../../context/RequestContext";
 import { getErrorMessage } from "@/lib/errors";
+import { useToast } from "@/context/ToastContext";
 import type { ServiceRequest, User } from "@/types";
 import { ServiceDetailCard, StatusBadge } from "./ServiceDetailCard";
 
@@ -16,6 +17,7 @@ export function ProviderRequestView({ request, client, imageUrl }: Props) {
   const router = useRouter();// si accepta el trabajo dice que si.
  //y si lo rechaza dice que no y rejectRequet
   const { acceptRequest, rejectRequest } = useRequests();
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -24,21 +26,25 @@ export function ProviderRequestView({ request, client, imageUrl }: Props) {
       <ServiceDetailCard person={client} request={request} imageUrl={imageUrl}badge={<StatusBadge label={label} tone={request.status === "rejected" ? "orange" : "muted"} />}/>);
   }
  //lo que sucede aqui es la parte de rechar si el provider rechaza
-  const runAction = async (action: () => Promise<void>, onSuccess?: () => void) => {
+  const runAction = async (action: () => Promise<void>, successMessage: string, onSuccess?: () => void) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     setActionError(null);
     try {
       await action();
+      showToast(successMessage, "success");
       onSuccess?.();
     } catch (err) {
-      setActionError(getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo."));
+      const message = getErrorMessage(err, "No se pudo actualizar la solicitud. Intenta de nuevo.");
+      setActionError(message);
+      showToast(message, "error");
     } finally {
       setIsSubmitting(false);
     }
   };
-  const handleAccept = () => runAction(() => acceptRequest(request.id));
-  const handleReject = () => runAction(() => rejectRequest(request.id), () => router.push("/requests"));
+  const handleAccept = () => runAction(() => acceptRequest(request.id), "Aceptaste la solicitud");
+  const handleReject = () =>
+    runAction(() => rejectRequest(request.id), "Rechazaste la solicitud", () => router.push("/requests"));
 // esto lo que hace es esperar la respuesta 
   return (<ServiceDetailCard person={client} request={request} imageUrl={imageUrl} badge={<StatusBadge label="Nueva" />}>
       <div className="mt-6 flex gap-4">

@@ -4,6 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MessageInput } from "@/app/chat/[requestId]/MessageInput";
 import type { Message } from "@/types";
 
+// Los toasts se simulan: solo se revisa que la pantalla los pida.
+vi.mock("@/context/ToastContext", () => ({ useToast: () => ({ showToast: vi.fn() }) }));
+
 const createMessage = vi.hoisted(() => vi.fn());
 
 vi.mock("@/context/ChatContext", () => ({
