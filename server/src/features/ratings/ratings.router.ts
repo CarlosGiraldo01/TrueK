@@ -7,3 +7,4 @@ ratingsRouter.get("/", getRatings);
 ratingsRouter.post("/", createRating);
 ratingsRouter.get("/averages", getRatingAverages)
 ratingsRouter.get("/:id", getRatingById);
+//ratings
